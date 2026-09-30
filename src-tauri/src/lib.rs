@@ -104,9 +104,11 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
 
     net_list.sort_by(|a, b| (b.rx_bytes + b.tx_bytes).cmp(&(a.rx_bytes + a.tx_bytes)));
 
-    let mut sensor_list: Vec<SensorInfo> = components.iter().map(|c| SensorInfo {
-        label: c.label().to_string(),
-        temperature: c.temperature(),
+    let mut sensor_list: Vec<SensorInfo> = components.iter().filter_map(|c| {
+        c.temperature().map(|temp| SensorInfo {
+            label: c.label().to_string(),
+            temperature: temp,
+        })
     }).collect();
 
     // Group similar labels by keeping the highest temp (sometimes sysinfo returns multiple cores)
