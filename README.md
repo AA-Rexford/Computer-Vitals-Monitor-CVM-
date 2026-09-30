@@ -23,9 +23,19 @@ Computer Vitals Monitor provides **one interface that makes a computer explain i
 3.  **Diagnose:** Correlate evidence via a robust rule engine rather than relying on guesswork.
 4.  **Manage / Remediate:** Execute authorized fixes and **verify** if the fix worked.
 
-## Development
-To get started:
+## How to run the app
+To run the project from scratch, use the following commands:
+
 ```bash
+# 1. Clone the repository
+git clone https://github.com/AA-Rexford/Computer-Vitals-Monitor-CVM-.git
+
+# 2. Navigate into the project folder
+cd Computer-Vitals-Monitor-CVM-
+
+# 3. Install frontend dependencies
 npm install
+
+# 4. Start the application (this will compile Rust and open the native window)
 npm run tauri dev
 ```
