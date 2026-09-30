@@ -37,15 +37,24 @@ struct SensorInfo {
 #[derive(Serialize, Clone)]
 struct SystemInfoData {
     name: String,
+    long_os_version: String,
     kernel_version: String,
     os_version: String,
+    distribution_id: String,
     host_name: String,
     uptime: u64,
+    boot_time: u64,
+    cpu_arch: String,
     cpu_brand: String,
+    cpu_vendor: String,
+    cpu_frequency: u64,
     cpu_cores: usize,
     cpu_logical_cores: usize,
     ram_total: u64,
+    ram_free: u64,
+    ram_available: u64,
     swap_total: u64,
+    swap_free: u64,
     gpu_name: String,
 }
 
@@ -166,16 +175,25 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     sensor_list.sort_by(|a, b| b.temperature.partial_cmp(&a.temperature).unwrap_or(std::cmp::Ordering::Equal));
 
     let sys_info = SystemInfoData {
-        name: System::name().unwrap_or_else(|| "Unknown".to_string()),
-        kernel_version: System::kernel_version().unwrap_or_else(|| "Unknown".to_string()),
-        os_version: System::os_version().unwrap_or_else(|| "Unknown".to_string()),
-        host_name: System::host_name().unwrap_or_else(|| "Unknown".to_string()),
+        name: System::name().unwrap_or_else(|| "Unavailable".to_string()),
+        long_os_version: System::long_os_version().unwrap_or_else(|| "Unavailable".to_string()),
+        kernel_version: System::kernel_version().unwrap_or_else(|| "Unavailable".to_string()),
+        os_version: System::os_version().unwrap_or_else(|| "Unavailable".to_string()),
+        distribution_id: System::distribution_id(),
+        host_name: System::host_name().unwrap_or_else(|| "Unavailable".to_string()),
         uptime: System::uptime(),
-        cpu_brand: sys.cpus().first().map(|c| c.brand().to_string()).unwrap_or_else(|| "Unknown CPU".to_string()),
+        boot_time: System::boot_time(),
+        cpu_arch: System::cpu_arch(),
+        cpu_brand: sys.cpus().first().map(|c| c.brand().to_string()).unwrap_or_else(|| "Unavailable".to_string()),
+        cpu_vendor: sys.cpus().first().map(|c| c.vendor_id().to_string()).unwrap_or_else(|| "Unavailable".to_string()),
+        cpu_frequency: sys.cpus().first().map(|c| c.frequency()).unwrap_or(0),
         cpu_cores: System::physical_core_count().unwrap_or(0),
         cpu_logical_cores: sys.cpus().len(),
         ram_total: sys.total_memory(),
+        ram_free: sys.free_memory(),
+        ram_available: sys.available_memory(),
         swap_total: sys.total_swap(),
+        swap_free: sys.free_swap(),
         gpu_name: get_gpu_info(),
     };
 

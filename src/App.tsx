@@ -10,8 +10,9 @@ interface ProcessInfo { pid: number; name: string; cpu_usage: number; memory_usa
 interface NetworkInfo { name: string; rx_bytes: number; tx_bytes: number; }
 interface SensorInfo { label: string; temperature: number; }
 interface SystemInfoData { 
-  name: string; kernel_version: string; os_version: string; host_name: string; uptime: number; 
-  cpu_brand: string; cpu_cores: number; cpu_logical_cores: number; ram_total: number; swap_total: number; gpu_name: string;
+  name: string; long_os_version: string; kernel_version: string; os_version: string; distribution_id: string; host_name: string; uptime: number; boot_time: number;
+  cpu_arch: string; cpu_brand: string; cpu_vendor: string; cpu_frequency: number; cpu_cores: number; cpu_logical_cores: number; 
+  ram_total: number; ram_free: number; ram_available: number; swap_total: number; swap_free: number; gpu_name: string;
 }
 
 interface SystemVitals {
@@ -248,6 +249,8 @@ function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
     return `${d}d ${h}h ${m}m`;
   };
 
+  const bootDate = new Date(Date.now() - info.uptime * 1000).toLocaleString();
+
   return (
     <div className="sysinfo-view">
       <div className="sysinfo-grid">
@@ -258,8 +261,10 @@ function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
           </div>
           <div className="sys-props">
             <div className="sys-prop"><span className="prop-label">Host Name</span><span className="prop-value">{info.host_name}</span></div>
-            <div className="sys-prop"><span className="prop-label">OS Name</span><span className="prop-value">{info.name} {info.os_version}</span></div>
+            <div className="sys-prop"><span className="prop-label">OS</span><span className="prop-value">{info.long_os_version}</span></div>
+            <div className="sys-prop"><span className="prop-label">Distribution</span><span className="prop-value">{info.distribution_id}</span></div>
             <div className="sys-prop"><span className="prop-label">Kernel</span><span className="prop-value">{info.kernel_version}</span></div>
+            <div className="sys-prop"><span className="prop-label">Boot Time</span><span className="prop-value">{bootDate}</span></div>
             <div className="sys-prop"><span className="prop-label">Uptime</span><span className="prop-value highlight">{formatUptime(info.uptime)}</span></div>
           </div>
         </div>
@@ -270,32 +275,36 @@ function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
             <h2>Processor</h2>
           </div>
           <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Model</span><span className="prop-value">{info.cpu_brand}</span></div>
-            <div className="sys-prop"><span className="prop-label">Physical Cores</span><span className="prop-value">{info.cpu_cores}</span></div>
+            <div className="sys-prop"><span className="prop-label">Model</span><span className="prop-value gpu-text">{info.cpu_brand}</span></div>
+            <div className="sys-prop"><span className="prop-label">Vendor ID</span><span className="prop-value">{info.cpu_vendor}</span></div>
+            <div className="sys-prop"><span className="prop-label">Architecture</span><span className="prop-value">{info.cpu_arch}</span></div>
+            <div className="sys-prop"><span className="prop-label">Physical Cores</span><span className="prop-value">{info.cpu_cores === 0 ? 'Unavailable' : info.cpu_cores}</span></div>
             <div className="sys-prop"><span className="prop-label">Logical Threads</span><span className="prop-value">{info.cpu_logical_cores}</span></div>
+            <div className="sys-prop"><span className="prop-label">Base Clock</span><span className="prop-value">{info.cpu_frequency === 0 ? 'Unavailable' : `${info.cpu_frequency} MHz`}</span></div>
           </div>
         </div>
 
         <div className="panel sys-panel">
           <div className="panel-header">
             <MemoryStick className="panel-icon" />
-            <h2>Memory</h2>
+            <h2>Memory subsystem</h2>
           </div>
           <div className="sys-props">
             <div className="sys-prop"><span className="prop-label">Total RAM</span><span className="prop-value">{formatBytes(info.ram_total)}</span></div>
+            <div className="sys-prop"><span className="prop-label">Available RAM</span><span className="prop-value">{formatBytes(info.ram_available)}</span></div>
+            <div className="sys-prop"><span className="prop-label">Free RAM</span><span className="prop-value">{formatBytes(info.ram_free)}</span></div>
             <div className="sys-prop"><span className="prop-label">Total Swap</span><span className="prop-value">{formatBytes(info.swap_total)}</span></div>
+            <div className="sys-prop"><span className="prop-label">Free Swap</span><span className="prop-value">{formatBytes(info.swap_free)}</span></div>
           </div>
         </div>
 
         <div className="panel sys-panel">
           <div className="panel-header">
             <Square className="panel-icon" />
-            <h2>Graphics</h2>
+            <h2>Graphics Processor</h2>
           </div>
           <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">GPU Model</span><span className="prop-value" title={info.gpu_name}>
-              {info.gpu_name.length > 30 ? info.gpu_name.substring(0, 30) + '...' : info.gpu_name}
-            </span></div>
+            <div className="sys-prop"><span className="prop-label">GPU Model</span><span className="prop-value gpu-text">{info.gpu_name}</span></div>
           </div>
         </div>
       </div>

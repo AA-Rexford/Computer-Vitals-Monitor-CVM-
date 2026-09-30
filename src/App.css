@@ -487,3 +487,10 @@ body {
 .sys-panel {
   justify-content: flex-start;
 }
+
+.gpu-text {
+  text-align: right;
+  word-break: break-word;
+  max-width: 70%;
+  white-space: pre-wrap;
+}
