@@ -53,7 +53,6 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     // Refresh components
     sys.refresh_all();
     disks.refresh(true);
-    networks.refresh_list();
     networks.refresh(true);
     
     let cpu_usage = sys.global_cpu_usage();
@@ -107,8 +106,8 @@ pub fn run() {
     let mut sys = System::new_all();
     sys.refresh_all();
     
-    let mut disks = Disks::new_with_refreshed_list();
-    let mut networks = sysinfo::Networks::new_with_refreshed_list();
+    let disks = Disks::new_with_refreshed_list();
+    let networks = sysinfo::Networks::new_with_refreshed_list();
 
     tauri::Builder::default()
         .manage(AppState {
