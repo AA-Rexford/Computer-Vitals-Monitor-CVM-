@@ -10,9 +10,9 @@ interface ProcessInfo { pid: number; name: string; cpu_usage: number; memory_usa
 interface NetworkInfo { name: string; rx_bytes: number; tx_bytes: number; }
 interface SensorInfo { label: string; temperature: number; }
 interface SystemInfoData { 
-  name: string; long_os_version: string; kernel_version: string; os_version: string; distribution_id: string; host_name: string; uptime: number; boot_time: number;
+  name: string; long_os_version: string; kernel_version: string; os_version: string; distribution_id: string; host_name: string;
   cpu_arch: string; cpu_brand: string; cpu_vendor: string; cpu_frequency: number; cpu_cores: number; cpu_logical_cores: number; 
-  ram_total: number; ram_free: number; ram_available: number; swap_total: number; swap_free: number; gpu_name: string;
+  ram_total: number; swap_total: number; gpu_name: string; vram: string; mac_addresses: string[];
 }
 
 interface SystemVitals {
@@ -241,15 +241,6 @@ function DiagnosticsView({ vitals }: { vitals: SystemVitals | null }) {
 function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
   if (!vitals) return <p>Loading...</p>;
   const info = vitals.sys_info;
-  
-  const formatUptime = (seconds: number) => {
-    const d = Math.floor(seconds / (3600*24));
-    const h = Math.floor(seconds % (3600*24) / 3600);
-    const m = Math.floor(seconds % 3600 / 60);
-    return `${d}d ${h}h ${m}m`;
-  };
-
-  const bootDate = new Date(Date.now() - info.uptime * 1000).toLocaleString();
 
   return (
     <div className="sysinfo-view">
@@ -262,10 +253,8 @@ function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
           <div className="sys-props">
             <div className="sys-prop"><span className="prop-label">Host Name</span><span className="prop-value">{info.host_name}</span></div>
             <div className="sys-prop"><span className="prop-label">OS</span><span className="prop-value">{info.long_os_version}</span></div>
-            <div className="sys-prop"><span className="prop-label">Distribution</span><span className="prop-value">{info.distribution_id}</span></div>
+            <div className="sys-prop"><span className="prop-label">Distribution</span><span className="prop-value">{info.distribution_id || 'Unavailable'}</span></div>
             <div className="sys-prop"><span className="prop-label">Kernel</span><span className="prop-value">{info.kernel_version}</span></div>
-            <div className="sys-prop"><span className="prop-label">Boot Time</span><span className="prop-value">{bootDate}</span></div>
-            <div className="sys-prop"><span className="prop-label">Uptime</span><span className="prop-value highlight">{formatUptime(info.uptime)}</span></div>
           </div>
         </div>
 
@@ -277,7 +266,7 @@ function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
           <div className="sys-props">
             <div className="sys-prop"><span className="prop-label">Model</span><span className="prop-value gpu-text">{info.cpu_brand}</span></div>
             <div className="sys-prop"><span className="prop-label">Vendor ID</span><span className="prop-value">{info.cpu_vendor}</span></div>
-            <div className="sys-prop"><span className="prop-label">Architecture</span><span className="prop-value">{info.cpu_arch}</span></div>
+            <div className="sys-prop"><span className="prop-label">Architecture</span><span className="prop-value">{info.cpu_arch || 'Unavailable'}</span></div>
             <div className="sys-prop"><span className="prop-label">Physical Cores</span><span className="prop-value">{info.cpu_cores === 0 ? 'Unavailable' : info.cpu_cores}</span></div>
             <div className="sys-prop"><span className="prop-label">Logical Threads</span><span className="prop-value">{info.cpu_logical_cores}</span></div>
             <div className="sys-prop"><span className="prop-label">Base Clock</span><span className="prop-value">{info.cpu_frequency === 0 ? 'Unavailable' : `${info.cpu_frequency} MHz`}</span></div>
@@ -291,10 +280,7 @@ function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
           </div>
           <div className="sys-props">
             <div className="sys-prop"><span className="prop-label">Total RAM</span><span className="prop-value">{formatBytes(info.ram_total)}</span></div>
-            <div className="sys-prop"><span className="prop-label">Available RAM</span><span className="prop-value">{formatBytes(info.ram_available)}</span></div>
-            <div className="sys-prop"><span className="prop-label">Free RAM</span><span className="prop-value">{formatBytes(info.ram_free)}</span></div>
             <div className="sys-prop"><span className="prop-label">Total Swap</span><span className="prop-value">{formatBytes(info.swap_total)}</span></div>
-            <div className="sys-prop"><span className="prop-label">Free Swap</span><span className="prop-value">{formatBytes(info.swap_free)}</span></div>
           </div>
         </div>
 
@@ -305,6 +291,25 @@ function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
           </div>
           <div className="sys-props">
             <div className="sys-prop"><span className="prop-label">GPU Model</span><span className="prop-value gpu-text">{info.gpu_name}</span></div>
+            <div className="sys-prop"><span className="prop-label">VRAM</span><span className="prop-value">{info.vram}</span></div>
+          </div>
+        </div>
+        
+        <div className="panel sys-panel" style={{ gridColumn: 'span 2' }}>
+          <div className="panel-header">
+            <Network className="panel-icon" />
+            <h2>Network Adapters (MAC Addresses)</h2>
+          </div>
+          <div className="sys-props" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            {info.mac_addresses.map((mac, i) => (
+              <div key={i} className="sys-prop" style={{ marginBottom: 0 }}>
+                <span className="prop-label">Adapter {i+1}</span>
+                <span className="prop-value">{mac}</span>
+              </div>
+            ))}
+            {info.mac_addresses.length === 0 && (
+              <div className="sys-prop"><span className="prop-label">Adapters</span><span className="prop-value">Unavailable</span></div>
+            )}
           </div>
         </div>
       </div>

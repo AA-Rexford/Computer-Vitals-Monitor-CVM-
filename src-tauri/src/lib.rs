@@ -42,8 +42,6 @@ struct SystemInfoData {
     os_version: String,
     distribution_id: String,
     host_name: String,
-    uptime: u64,
-    boot_time: u64,
     cpu_arch: String,
     cpu_brand: String,
     cpu_vendor: String,
@@ -51,11 +49,10 @@ struct SystemInfoData {
     cpu_cores: usize,
     cpu_logical_cores: usize,
     ram_total: u64,
-    ram_free: u64,
-    ram_available: u64,
     swap_total: u64,
-    swap_free: u64,
     gpu_name: String,
+    vram: String,
+    mac_addresses: Vec<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -109,6 +106,47 @@ fn get_gpu_info() -> String {
     #[cfg(not(any(target_os = "linux", target_os = "windows")))]
     {
         "Unknown GPU".to_string()
+    }
+}
+
+fn get_vram_info() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(output) = std::process::Command::new("lspci").args(&["-v"]).output() {
+            let out = String::from_utf8_lossy(&output.stdout);
+            for line in out.lines() {
+                if line.contains("Memory at") && line.contains("size=") {
+                    // Try to find the prefetchable memory size (often VRAM)
+                    if line.contains("prefetchable") {
+                        if let Some(idx) = line.find("size=") {
+                            let end_idx = line[idx+5..].find(']').map(|i| i + idx + 5).unwrap_or(line.len());
+                            return line[idx+5..end_idx].to_string();
+                        }
+                    }
+                }
+            }
+        }
+        "Unavailable".to_string()
+    }
+    
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(output) = std::process::Command::new("wmic").args(&["path", "win32_VideoController", "get", "AdapterRAM"]).output() {
+            let out = String::from_utf8_lossy(&output.stdout);
+            let mut lines = out.lines().filter(|l| !l.trim().is_empty());
+            lines.next();
+            if let Some(ram_str) = lines.next() {
+                if let Ok(bytes) = ram_str.trim().parse::<u64>() {
+                    return format!("{} MB", bytes / 1024 / 1024);
+                }
+            }
+        }
+        "Unavailable".to_string()
+    }
+    
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    {
+        "Unavailable".to_string()
     }
 }
 
@@ -174,6 +212,17 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     // Group similar labels by keeping the highest temp (sometimes sysinfo returns multiple cores)
     sensor_list.sort_by(|a, b| b.temperature.partial_cmp(&a.temperature).unwrap_or(std::cmp::Ordering::Equal));
 
+    
+    let mut mac_addresses = Vec::new();
+    for (name, data) in networks.iter() {
+        let n = name.to_lowercase();
+        if !n.starts_with("veth") && !n.starts_with("docker") && !n.starts_with("br-") && n != "lo" {
+            let mac = data.mac_address();
+            let mac_str = mac.to_string();
+            mac_addresses.push(format!("{} ({})", name, mac_str));
+        }
+    }
+
     let sys_info = SystemInfoData {
         name: System::name().unwrap_or_else(|| "Unavailable".to_string()),
         long_os_version: System::long_os_version().unwrap_or_else(|| "Unavailable".to_string()),
@@ -181,8 +230,6 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         os_version: System::os_version().unwrap_or_else(|| "Unavailable".to_string()),
         distribution_id: System::distribution_id(),
         host_name: System::host_name().unwrap_or_else(|| "Unavailable".to_string()),
-        uptime: System::uptime(),
-        boot_time: System::boot_time(),
         cpu_arch: System::cpu_arch(),
         cpu_brand: sys.cpus().first().map(|c| c.brand().to_string()).unwrap_or_else(|| "Unavailable".to_string()),
         cpu_vendor: sys.cpus().first().map(|c| c.vendor_id().to_string()).unwrap_or_else(|| "Unavailable".to_string()),
@@ -190,11 +237,10 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         cpu_cores: System::physical_core_count().unwrap_or(0),
         cpu_logical_cores: sys.cpus().len(),
         ram_total: sys.total_memory(),
-        ram_free: sys.free_memory(),
-        ram_available: sys.available_memory(),
         swap_total: sys.total_swap(),
-        swap_free: sys.free_swap(),
         gpu_name: get_gpu_info(),
+        vram: get_vram_info(),
+        mac_addresses,
     };
 
     SystemVitals {
