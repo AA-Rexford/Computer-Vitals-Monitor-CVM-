@@ -41,6 +41,12 @@ struct SystemInfoData {
     os_version: String,
     host_name: String,
     uptime: u64,
+    cpu_brand: String,
+    cpu_cores: usize,
+    cpu_logical_cores: usize,
+    ram_total: u64,
+    swap_total: u64,
+    gpu_name: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -60,6 +66,41 @@ struct AppState {
     disks: Mutex<Disks>,
     networks: Mutex<sysinfo::Networks>,
     components: Mutex<sysinfo::Components>,
+}
+
+fn get_gpu_info() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(output) = std::process::Command::new("lspci").output() {
+            let out = String::from_utf8_lossy(&output.stdout);
+            for line in out.lines() {
+                if line.contains("VGA compatible controller") || line.contains("3D controller") {
+                    if let Some(idx) = line.find(": ") {
+                        return line[idx+2..].to_string();
+                    }
+                }
+            }
+        }
+        "Unknown GPU".to_string()
+    }
+    
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(output) = std::process::Command::new("wmic").args(&["path", "win32_VideoController", "get", "name"]).output() {
+            let out = String::from_utf8_lossy(&output.stdout);
+            let mut lines = out.lines().filter(|l| !l.trim().is_empty());
+            lines.next(); // Skip header
+            if let Some(gpu) = lines.next() {
+                return gpu.trim().to_string();
+            }
+        }
+        "Unknown GPU".to_string()
+    }
+    
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    {
+        "Unknown GPU".to_string()
+    }
 }
 
 #[tauri::command]
@@ -130,6 +171,12 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         os_version: System::os_version().unwrap_or_else(|| "Unknown".to_string()),
         host_name: System::host_name().unwrap_or_else(|| "Unknown".to_string()),
         uptime: System::uptime(),
+        cpu_brand: sys.cpus().first().map(|c| c.brand().to_string()).unwrap_or_else(|| "Unknown CPU".to_string()),
+        cpu_cores: sys.physical_core_count().unwrap_or(0),
+        cpu_logical_cores: sys.cpus().len(),
+        ram_total: sys.total_memory(),
+        swap_total: sys.total_swap(),
+        gpu_name: get_gpu_info(),
     };
 
     SystemVitals {

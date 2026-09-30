@@ -476,3 +476,14 @@ body {
   color: var(--accent-cyan);
   font-weight: bold;
 }
+
+/* System Info View */
+.sysinfo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.sys-panel {
+  justify-content: flex-start;
+}
