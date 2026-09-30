@@ -196,3 +196,61 @@ body {
   font-style: italic;
   margin-top: 0.5rem;
 }
+
+/* Storage Section Additions */
+.storage-panel {
+  grid-row: span 2;
+}
+
+.disk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.disk-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.disk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.disk-name {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.disk-mount {
+  font-size: 0.75rem;
+  color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.1);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.progress-bar-fill.warning {
+  background-color: var(--accent-green); /* Fallback */
+  background-color: #f59e0b; /* Amber */
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.progress-bar-fill.critical {
+  background-color: #ef4444; /* Red */
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.mt-2 { margin-top: 0.5rem; }

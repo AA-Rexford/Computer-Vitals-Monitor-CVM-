@@ -4,10 +4,20 @@ import { Activity, Cpu, HardDrive, Network, MemoryStick } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import "./App.css";
 
+interface DiskInfo {
+  name: string;
+  file_system: string;
+  mount_point: string;
+  total_space: number;
+  available_space: number;
+  is_removable: boolean;
+}
+
 interface SystemVitals {
   cpu_usage: number;
   ram_total: number;
   ram_used: number;
+  disks: DiskInfo[];
 }
 
 interface CpuHistoryPoint {
@@ -136,14 +146,47 @@ function App() {
           </div>
         </section>
 
-        {/* Placeholder Panels for future phases */}
-        <section className="panel disabled-panel">
+        {/* Storage Panel */}
+        <section className="panel storage-panel">
           <div className="panel-header">
             <HardDrive className="panel-icon" />
-            <h2>Storage</h2>
-            <span className="status-tag">AWAITING PHASE 5</span>
+            <h2>Storage Drives</h2>
+            <span className="value-highlight">{vitals?.disks.length || 0} found</span>
           </div>
-          <p className="placeholder-text">Hardware collectors not yet implemented for physical drives.</p>
+          <div className="disk-list">
+            {vitals?.disks.map((disk, idx) => {
+              const used = disk.total_space - disk.available_space;
+              const usedPercent = disk.total_space > 0 ? (used / disk.total_space) * 100 : 0;
+              const isWarning = usedPercent > 85;
+              const isCritical = usedPercent > 95;
+              
+              let barColorClass = "progress-bar-fill";
+              if (isCritical) barColorClass += " critical";
+              else if (isWarning) barColorClass += " warning";
+
+              return (
+                <div key={idx} className="disk-item">
+                  <div className="disk-header">
+                    <span className="disk-name">{disk.name || "Drive"}</span>
+                    <span className="disk-mount">{disk.mount_point}</span>
+                  </div>
+                  <div className="metric-row">
+                    <span className="metric-label">{disk.file_system}</span>
+                    <span className="metric-value">
+                      {formatBytes(used)} / {formatBytes(disk.total_space)}
+                    </span>
+                  </div>
+                  <div className="progress-bar-bg mt-2">
+                    <div 
+                      className={barColorClass} 
+                      style={{ width: `${usedPercent}%` }}
+                    ></div>
+                  </div>
+                </div>
+              );
+            })}
+            {!vitals?.disks.length && <p className="placeholder-text">No storage devices detected.</p>}
+          </div>
         </section>
 
         <section className="panel disabled-panel">
