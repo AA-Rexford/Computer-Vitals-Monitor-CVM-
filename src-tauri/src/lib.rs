@@ -83,7 +83,10 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     proc_list.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
     proc_list.truncate(15);
 
-    let mut net_list: Vec<NetworkInfo> = networks.iter().map(|(name, data)| NetworkInfo {
+    let mut net_list: Vec<NetworkInfo> = networks.iter().filter(|(name, _)| {
+        let n = name.to_lowercase();
+        !n.starts_with("veth") && !n.starts_with("docker") && !n.starts_with("br-") && n != "lo"
+    }).map(|(name, data)| NetworkInfo {
         name: name.to_string(),
         rx_bytes: data.received(), // speed since last refresh
         tx_bytes: data.transmitted(), // speed since last refresh

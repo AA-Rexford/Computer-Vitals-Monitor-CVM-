@@ -33,7 +33,7 @@ body {
   flex-direction: column;
   padding: 1.5rem;
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden;
   background-color: var(--bg-deep);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -46,10 +46,11 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--border-subtle);
   user-select: none;
+  flex-shrink: 0;
 }
 
 .brand {
@@ -89,6 +90,7 @@ body {
   padding: 0.25rem;
   border-radius: 4px;
   transition: all 0.2s;
+  -webkit-app-region: no-drag;
 }
 
 .control-btn:hover {
@@ -112,6 +114,7 @@ body {
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   border: 1px solid rgba(16, 185, 129, 0.2);
+  -webkit-app-region: no-drag;
 }
 
 .status-dot {
@@ -131,7 +134,10 @@ body {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 1.5rem;
 }
 
@@ -142,6 +148,7 @@ body {
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .panel-header {
@@ -237,7 +244,7 @@ body {
 
 /* Storage Section Additions */
 .storage-panel {
-  grid-row: span 2;
+  grid-column: span 1;
 }
 
 .disk-list {
@@ -295,7 +302,7 @@ body {
 
 /* Process Section */
 .process-panel {
-  grid-row: span 2;
+  grid-column: span 2;
 }
 
 .process-list {
