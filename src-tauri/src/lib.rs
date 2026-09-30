@@ -35,6 +35,15 @@ struct SensorInfo {
 }
 
 #[derive(Serialize, Clone)]
+struct SystemInfoData {
+    name: String,
+    kernel_version: String,
+    os_version: String,
+    host_name: String,
+    uptime: u64,
+}
+
+#[derive(Serialize, Clone)]
 struct SystemVitals {
     cpu_usage: f32,
     ram_total: u64,
@@ -43,6 +52,7 @@ struct SystemVitals {
     processes: Vec<ProcessInfo>,
     networks: Vec<NetworkInfo>,
     sensors: Vec<SensorInfo>,
+    sys_info: SystemInfoData,
 }
 
 struct AppState {
@@ -114,6 +124,14 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     // Group similar labels by keeping the highest temp (sometimes sysinfo returns multiple cores)
     sensor_list.sort_by(|a, b| b.temperature.partial_cmp(&a.temperature).unwrap_or(std::cmp::Ordering::Equal));
 
+    let sys_info = SystemInfoData {
+        name: System::name().unwrap_or_else(|| "Unknown".to_string()),
+        kernel_version: System::kernel_version().unwrap_or_else(|| "Unknown".to_string()),
+        os_version: System::os_version().unwrap_or_else(|| "Unknown".to_string()),
+        host_name: System::host_name().unwrap_or_else(|| "Unknown".to_string()),
+        uptime: System::uptime(),
+    };
+
     SystemVitals {
         cpu_usage,
         ram_total,
@@ -122,6 +140,7 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         processes: proc_list,
         networks: net_list,
         sensors: sensor_list,
+        sys_info,
     }
 }
 
