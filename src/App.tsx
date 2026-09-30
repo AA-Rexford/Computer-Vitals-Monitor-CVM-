@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus } from "lucide-react";
+import { Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus, Square } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import "./App.css";
 
@@ -21,12 +21,19 @@ interface ProcessInfo {
   memory_usage: number;
 }
 
+interface NetworkInfo {
+  name: string;
+  rx_bytes: number;
+  tx_bytes: number;
+}
+
 interface SystemVitals {
   cpu_usage: number;
   ram_total: number;
   ram_used: number;
   disks: DiskInfo[];
   processes: ProcessInfo[];
+  networks: NetworkInfo[];
 }
 
 interface CpuHistoryPoint {
@@ -100,6 +107,9 @@ function App() {
           <button className="control-btn" onClick={() => appWindow.minimize()} title="Minimize">
             <Minus size={18} />
           </button>
+          <button className="control-btn" onClick={() => appWindow.toggleMaximize()} title="Maximize">
+            <Square size={14} />
+          </button>
           <button className="control-btn close-btn" onClick={() => appWindow.close()} title="Close">
             <X size={18} />
           </button>
@@ -163,6 +173,29 @@ function App() {
               className="progress-bar-fill" 
               style={{ width: `${ramPercentage}%` }}
             ></div>
+          </div>
+        </section>
+
+        {/* Network Panel */}
+        <section className="panel">
+          <div className="panel-header">
+            <Network className="panel-icon" />
+            <h2>Network Traffic</h2>
+            <span className="value-highlight">{vitals?.networks.length || 0} interfaces</span>
+          </div>
+          <div className="network-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto' }}>
+            {vitals?.networks.map((net, idx) => (
+              <div key={idx} className="network-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{net.name}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                  <span style={{ color: 'var(--accent-green)' }}>↓ {formatBytes(net.rx_bytes)}/s</span>
+                  <span style={{ color: 'var(--accent-blue)' }}>↑ {formatBytes(net.tx_bytes)}/s</span>
+                </div>
+              </div>
+            ))}
+            {!vitals?.networks.length && <p className="placeholder-text">No active interfaces</p>}
           </div>
         </section>
 

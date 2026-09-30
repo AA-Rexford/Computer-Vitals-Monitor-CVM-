@@ -22,27 +22,39 @@ struct ProcessInfo {
 }
 
 #[derive(Serialize, Clone)]
+struct NetworkInfo {
+    name: String,
+    rx_bytes: u64,
+    tx_bytes: u64,
+}
+
+#[derive(Serialize, Clone)]
 struct SystemVitals {
     cpu_usage: f32,
     ram_total: u64,
     ram_used: u64,
     disks: Vec<DiskInfo>,
     processes: Vec<ProcessInfo>,
+    networks: Vec<NetworkInfo>,
 }
 
 struct AppState {
     sys: Mutex<System>,
     disks: Mutex<Disks>,
+    networks: Mutex<sysinfo::Networks>,
 }
 
 #[tauri::command]
 fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     let mut sys = state.sys.lock().unwrap();
     let mut disks = state.disks.lock().unwrap();
+    let mut networks = state.networks.lock().unwrap();
     
     // Refresh components
     sys.refresh_all();
     disks.refresh(true);
+    networks.refresh_list();
+    networks.refresh(true);
     
     let cpu_usage = sys.global_cpu_usage();
     let ram_total = sys.total_memory();
@@ -72,27 +84,37 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     proc_list.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
     proc_list.truncate(15);
 
+    let mut net_list: Vec<NetworkInfo> = networks.iter().map(|(name, data)| NetworkInfo {
+        name: name.to_string(),
+        rx_bytes: data.received(), // speed since last refresh
+        tx_bytes: data.transmitted(), // speed since last refresh
+    }).collect();
+
+    net_list.sort_by(|a, b| (b.rx_bytes + b.tx_bytes).cmp(&(a.rx_bytes + a.tx_bytes)));
+
     SystemVitals {
         cpu_usage,
         ram_total,
         ram_used,
         disks: disk_list,
         processes: proc_list,
+        networks: net_list,
     }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut sys = System::new_all();
-    sys.refresh_cpu_usage();
-    sys.refresh_memory();
+    sys.refresh_all();
     
     let mut disks = Disks::new_with_refreshed_list();
+    let mut networks = sysinfo::Networks::new_with_refreshed_list();
 
     tauri::Builder::default()
         .manage(AppState {
             sys: Mutex::new(sys),
             disks: Mutex::new(disks),
+            networks: Mutex::new(networks),
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![get_system_vitals])
