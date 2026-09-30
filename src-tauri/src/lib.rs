@@ -29,6 +29,12 @@ struct NetworkInfo {
 }
 
 #[derive(Serialize, Clone)]
+struct SensorInfo {
+    label: String,
+    temperature: f32,
+}
+
+#[derive(Serialize, Clone)]
 struct SystemVitals {
     cpu_usage: f32,
     ram_total: u64,
@@ -36,12 +42,14 @@ struct SystemVitals {
     disks: Vec<DiskInfo>,
     processes: Vec<ProcessInfo>,
     networks: Vec<NetworkInfo>,
+    sensors: Vec<SensorInfo>,
 }
 
 struct AppState {
     sys: Mutex<System>,
     disks: Mutex<Disks>,
     networks: Mutex<sysinfo::Networks>,
+    components: Mutex<sysinfo::Components>,
 }
 
 #[tauri::command]
@@ -49,11 +57,13 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     let mut sys = state.sys.lock().unwrap();
     let mut disks = state.disks.lock().unwrap();
     let mut networks = state.networks.lock().unwrap();
+    let mut components = state.components.lock().unwrap();
     
     // Refresh components
     sys.refresh_all();
     disks.refresh(true);
     networks.refresh(true);
+    components.refresh(true);
     
     let cpu_usage = sys.global_cpu_usage();
     let ram_total = sys.total_memory();
@@ -88,11 +98,19 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         !n.starts_with("veth") && !n.starts_with("docker") && !n.starts_with("br-") && n != "lo"
     }).map(|(name, data)| NetworkInfo {
         name: name.to_string(),
-        rx_bytes: data.received(), // speed since last refresh
-        tx_bytes: data.transmitted(), // speed since last refresh
+        rx_bytes: data.received(),
+        tx_bytes: data.transmitted(),
     }).collect();
 
     net_list.sort_by(|a, b| (b.rx_bytes + b.tx_bytes).cmp(&(a.rx_bytes + a.tx_bytes)));
+
+    let mut sensor_list: Vec<SensorInfo> = components.iter().map(|c| SensorInfo {
+        label: c.label().to_string(),
+        temperature: c.temperature(),
+    }).collect();
+
+    // Group similar labels by keeping the highest temp (sometimes sysinfo returns multiple cores)
+    sensor_list.sort_by(|a, b| b.temperature.partial_cmp(&a.temperature).unwrap_or(std::cmp::Ordering::Equal));
 
     SystemVitals {
         cpu_usage,
@@ -101,6 +119,7 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         disks: disk_list,
         processes: proc_list,
         networks: net_list,
+        sensors: sensor_list,
     }
 }
 
@@ -111,12 +130,14 @@ pub fn run() {
     
     let disks = Disks::new_with_refreshed_list();
     let networks = sysinfo::Networks::new_with_refreshed_list();
+    let components = sysinfo::Components::new_with_refreshed_list();
 
     tauri::Builder::default()
         .manage(AppState {
             sys: Mutex::new(sys),
             disks: Mutex::new(disks),
             networks: Mutex::new(networks),
+            components: Mutex::new(components),
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![get_system_vitals])

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus, Square } from "lucide-react";
+import { Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus, Square, Thermometer } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import "./App.css";
 
@@ -27,6 +27,11 @@ interface NetworkInfo {
   tx_bytes: number;
 }
 
+interface SensorInfo {
+  label: string;
+  temperature: number;
+}
+
 interface SystemVitals {
   cpu_usage: number;
   ram_total: number;
@@ -34,6 +39,7 @@ interface SystemVitals {
   disks: DiskInfo[];
   processes: ProcessInfo[];
   networks: NetworkInfo[];
+  sensors: SensorInfo[];
 }
 
 interface CpuHistoryPoint {
@@ -265,6 +271,28 @@ function App() {
               </div>
             ))}
             {!vitals?.processes && <p className="placeholder-text">Gathering process data...</p>}
+          </div>
+        </section>
+        {/* Hardware Sensors Panel */}
+        <section className="panel sensor-panel">
+          <div className="panel-header">
+            <Thermometer className="panel-icon" />
+            <h2>Hardware Sensors</h2>
+            <span className="value-highlight">{vitals?.sensors.length || 0} reading{vitals?.sensors.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="sensor-list" style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '0.5rem', overflowY: 'auto' }}>
+            {vitals?.sensors.map((sensor, idx) => (
+              <div key={idx} className="sensor-item" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{sensor.label}</span>
+                <span className={`metric-badge ${sensor.temperature > 80 ? 'critical' : ''}`} style={{ 
+                  color: sensor.temperature > 80 ? '#ef4444' : sensor.temperature > 65 ? '#f59e0b' : 'var(--accent-cyan)',
+                  background: sensor.temperature > 80 ? 'rgba(239,68,68,0.1)' : sensor.temperature > 65 ? 'rgba(245,158,11,0.1)' : 'rgba(0,229,255,0.1)'
+                }}>
+                  {sensor.temperature.toFixed(1)}°C
+                </span>
+              </div>
+            ))}
+            {!vitals?.sensors.length && <p className="placeholder-text">No temperature sensors detected</p>}
           </div>
         </section>
       </div>
