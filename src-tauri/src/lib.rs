@@ -14,11 +14,20 @@ struct DiskInfo {
 }
 
 #[derive(Serialize, Clone)]
+struct ProcessInfo {
+    pid: u32,
+    name: String,
+    cpu_usage: f32,
+    memory_usage: u64,
+}
+
+#[derive(Serialize, Clone)]
 struct SystemVitals {
     cpu_usage: f32,
     ram_total: u64,
     ram_used: u64,
     disks: Vec<DiskInfo>,
+    processes: Vec<ProcessInfo>,
 }
 
 struct AppState {
@@ -32,10 +41,8 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     let mut disks = state.disks.lock().unwrap();
     
     // Refresh components
-    sys.refresh_cpu_usage();
-    sys.refresh_memory();
-    disks.refresh_list();
-    disks.refresh();
+    sys.refresh_all();
+    disks.refresh(true);
     
     let cpu_usage = sys.global_cpu_usage();
     let ram_total = sys.total_memory();
@@ -50,11 +57,23 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         is_removable: d.is_removable(),
     }).collect();
 
+    let mut proc_list: Vec<ProcessInfo> = sys.processes().iter().map(|(pid, p)| ProcessInfo {
+        pid: pid.as_u32(),
+        name: p.name().to_string_lossy().into_owned(),
+        cpu_usage: p.cpu_usage(),
+        memory_usage: p.memory(),
+    }).collect();
+
+    // Sort by CPU usage descending
+    proc_list.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
+    proc_list.truncate(15);
+
     SystemVitals {
         cpu_usage,
         ram_total,
         ram_used,
         disks: disk_list,
+        processes: proc_list,
     }
 }
 

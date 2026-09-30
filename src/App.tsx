@@ -13,11 +13,19 @@ interface DiskInfo {
   is_removable: boolean;
 }
 
+interface ProcessInfo {
+  pid: number;
+  name: string;
+  cpu_usage: number;
+  memory_usage: number;
+}
+
 interface SystemVitals {
   cpu_usage: number;
   ram_total: number;
   ram_used: number;
   disks: DiskInfo[];
+  processes: ProcessInfo[];
 }
 
 interface CpuHistoryPoint {
@@ -189,13 +197,30 @@ function App() {
           </div>
         </section>
 
-        <section className="panel disabled-panel">
+        {/* Top Processes Panel */}
+        <section className="panel process-panel">
           <div className="panel-header">
-            <Network className="panel-icon" />
-            <h2>Network</h2>
-            <span className="status-tag">AWAITING PHASE 12</span>
+            <Activity className="panel-icon" />
+            <h2>Top Processes</h2>
+            <span className="value-highlight">{vitals?.processes.length || 0} listed</span>
           </div>
-          <p className="placeholder-text">Interface parsing and packet statistics not yet implemented.</p>
+          <div className="process-list">
+            {vitals?.processes.map((proc) => (
+              <div key={proc.pid} className="process-item">
+                <div className="process-info">
+                  <span className="process-name" title={proc.name}>
+                    {proc.name.length > 20 ? proc.name.substring(0, 20) + "..." : proc.name}
+                  </span>
+                  <span className="process-pid">PID: {proc.pid}</span>
+                </div>
+                <div className="process-metrics">
+                  <span className="metric-badge cpu">{proc.cpu_usage.toFixed(1)}%</span>
+                  <span className="metric-badge ram">{formatBytes(proc.memory_usage)}</span>
+                </div>
+              </div>
+            ))}
+            {!vitals?.processes && <p className="placeholder-text">Gathering process data...</p>}
+          </div>
         </section>
       </div>
     </main>

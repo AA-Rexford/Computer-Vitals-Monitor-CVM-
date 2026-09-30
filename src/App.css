@@ -254,3 +254,70 @@ body {
 }
 
 .mt-2 { margin-top: 0.5rem; }
+
+/* Process Section */
+.process-panel {
+  grid-row: span 2;
+}
+
+.process-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.process-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.process-item:last-child {
+  border-bottom: none;
+}
+
+.process-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.process-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.process-pid {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.process-metrics {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.metric-badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.metric-badge.cpu {
+  color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.1);
+}
+
+.metric-badge.ram {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
