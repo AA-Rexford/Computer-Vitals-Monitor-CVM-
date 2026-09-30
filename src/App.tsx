@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Activity, Cpu, HardDrive, Network, MemoryStick } from "lucide-react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import "./App.css";
 
@@ -80,17 +81,28 @@ function App() {
   };
 
   const ramPercentage = vitals ? ((vitals.ram_used / vitals.ram_total) * 100).toFixed(1) : 0;
+  
+  const appWindow = getCurrentWindow();
 
   return (
     <main className="dashboard-container">
-      <header className="top-bar">
-        <div className="brand">
+      <header className="top-bar" data-tauri-drag-region>
+        <div className="brand" data-tauri-drag-region>
           <Activity className="brand-icon" />
-          <h1>Computer Vitals Monitor</h1>
+          <h1 data-tauri-drag-region>Computer Vitals Monitor</h1>
         </div>
-        <div className="status-badge">
-          <span className="status-dot"></span>
-          COLLECTING EVIDENCE
+        
+        <div className="window-controls">
+          <div className="status-badge" data-tauri-drag-region>
+            <span className="status-dot"></span>
+            COLLECTING EVIDENCE
+          </div>
+          <button className="control-btn" onClick={() => appWindow.minimize()} title="Minimize">
+            <Minus size={18} />
+          </button>
+          <button className="control-btn close-btn" onClick={() => appWindow.close()} title="Close">
+            <X size={18} />
+          </button>
         </div>
       </header>
 

@@ -48,7 +48,11 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     let ram_total = sys.total_memory();
     let ram_used = sys.used_memory();
 
-    let disk_list = disks.list().iter().map(|d| DiskInfo {
+    let disk_list = disks.list().iter().filter(|d| {
+        let fs = d.file_system().to_string_lossy().to_lowercase();
+        // Filter out common virtual/container filesystems
+        !fs.contains("overlay") && !fs.contains("tmpfs") && !fs.contains("squashfs") && !fs.contains("shm") && !fs.contains("devtmpfs") && fs != "sysfs" && fs != "proc" && fs != "cgroup"
+    }).map(|d| DiskInfo {
         name: d.name().to_string_lossy().into_owned(),
         file_system: d.file_system().to_string_lossy().into_owned(),
         mount_point: d.mount_point().to_string_lossy().into_owned(),
