@@ -23,11 +23,6 @@ Computer Vitals Monitor provides **one interface that makes a computer explain i
 3.  **Diagnose:** Correlate evidence via a robust rule engine rather than relying on guesswork.
 4.  **Manage / Remediate:** Execute authorized fixes and **verify** if the fix worked.
 
-## 🗺️ Roadmap
-*   **Phase 1 - Foundation:** Tauri + Rust + TypeScript + SQLite scaffolding.
-*   **Phase 2 - System Monitoring:** Rust collectors for basic vitals (CPU, RAM, storage space).
-*   **Phase 3 - UI Prototype:** Build the "Command Center" visual dashboard.
-
 ## Development
 To get started:
 ```bash
