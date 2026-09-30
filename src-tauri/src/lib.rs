@@ -172,7 +172,7 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         host_name: System::host_name().unwrap_or_else(|| "Unknown".to_string()),
         uptime: System::uptime(),
         cpu_brand: sys.cpus().first().map(|c| c.brand().to_string()).unwrap_or_else(|| "Unknown CPU".to_string()),
-        cpu_cores: sys.physical_core_count().unwrap_or(0),
+        cpu_cores: System::physical_core_count().unwrap_or(0),
         cpu_logical_cores: sys.cpus().len(),
         ram_total: sys.total_memory(),
         swap_total: sys.total_swap(),
