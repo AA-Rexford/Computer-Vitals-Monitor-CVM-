@@ -39,7 +39,10 @@ const formatBytes = (bytes: number) => {
 };
 
 
+
+
 function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, history: SystemVitals[] }) {
+  const [eventFilter, setEventFilter] = useState('Active Problems');
   if (!vitals) return <div className="loading" style={{padding: '2rem'}}>Initializing Command Center...</div>;
   const sys = vitals.sys_info;
 
@@ -65,7 +68,16 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
   const availableDiskSpace = vitals.disks.reduce((acc, d) => acc + d.available_space, 0);
   const diskUsagePct = totalDiskSpace > 0 ? ((totalDiskSpace - availableDiskSpace) / totalDiskSpace) * 100 : 0;
 
+  let storageColor = '#10b981'; // Green
+  if (diskUsagePct > 80) storageColor = '#ef4444'; // Red
+  else if (diskUsagePct > 60) storageColor = '#f59e0b'; // Yellow
+
+  let tempColor = '#3b82f6'; // Blue
+  if (cpuTemp > 80) tempColor = '#ef4444'; // Red
+  else if (cpuTemp > 60) tempColor = '#f59e0b'; // Yellow
+
   let sysStatus = 'HEALTHY';
+
   let sysColor = 'var(--accent-green)';
   const activeProblems = [];
   
@@ -79,12 +91,12 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
   else if (cpuTemp > 75) { if (sysStatus === 'HEALTHY') { sysStatus = 'WARNING'; sysColor = '#f59e0b'; } activeProblems.push(`Thermal Warning (${cpuTemp.toFixed(1)}°C)`); }
 
   const diskData = [
-    { name: 'Used', value: totalDiskSpace - availableDiskSpace, color: '#f59e0b' },
+    { name: 'Used', value: totalDiskSpace - availableDiskSpace, color: storageColor },
     { name: 'Free', value: availableDiskSpace, color: 'rgba(255,255,255,0.05)' }
   ];
 
   const tempData = [
-    { name: 'Temp', value: cpuTemp, color: sysColor },
+    { name: 'Temp', value: cpuTemp, color: tempColor },
     { name: 'Remaining', value: Math.max(100 - cpuTemp, 0), color: 'rgba(255,255,255,0.05)' }
   ];
 
@@ -98,7 +110,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
         </div>
         <div className="cc-status-box" style={{ borderColor: sysColor }}>
           <div className="status-indicator" style={{ backgroundColor: sysColor }}></div>
-          <span style={{ color: sysColor, fontWeight: 'bold', letterSpacing: '0.1em' }}>SYSTEM {sysStatus}</span>
+          <span style={{ color: tempColor, fontWeight: 'bold', letterSpacing: '0.1em' }}>SYSTEM {sysStatus}</span>
         </div>
         <div className="cc-uptime">
           <span>UPTIME</span>
@@ -121,7 +133,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </div>
           <div className="cc-sub">Core Temps Normal</div>
           <div className="cc-graph-mini">
-            <ResponsiveContainer width="100%" height={80}>
+            <ResponsiveContainer width="100%" height={90}>
               <AreaChart data={history.map((h, i) => ({ time: i, val: h.cpu_usage }))}>
                 <defs><linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00e5ff" stopOpacity={0.4}/><stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/></linearGradient></defs>
                 <Area type="monotone" dataKey="val" stroke="#00e5ff" fill="url(#colorCpu)" strokeWidth={2} isAnimationActive={false} />
@@ -138,7 +150,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </div>
           <div className="cc-sub">{formatBytes(vitals.ram_used)} / {formatBytes(vitals.ram_total)}</div>
           <div className="cc-graph-mini">
-            <ResponsiveContainer width="100%" height={80}>
+            <ResponsiveContainer width="100%" height={90}>
               <AreaChart data={history.map((h, i) => ({ time: i, val: (h.ram_used / h.ram_total) * 100 }))}>
                 <defs><linearGradient id="colorRam" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
                 <Area type="monotone" dataKey="val" stroke="#3b82f6" fill="url(#colorRam)" strokeWidth={2} isAnimationActive={false} />
@@ -155,7 +167,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </div>
           <div className="cc-sub">{sys.gpu_name.length > 25 ? sys.gpu_name.substring(0, 25) + '...' : sys.gpu_name}</div>
           <div className="cc-graph-mini">
-            <ResponsiveContainer width="100%" height={80}>
+            <ResponsiveContainer width="100%" height={90}>
               <AreaChart data={history.map((h, i) => {
                 const gt = h.sensors.find(s => s.label.toLowerCase().includes('gpu') || s.label.toLowerCase().includes('amd') || s.label.toLowerCase().includes('edge'))?.temperature || 0;
                 return { time: i, val: gt };
@@ -175,7 +187,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </div>
           <div className="cc-sub">↓ {formatBytes(totalRx)}/s  ↑ {formatBytes(totalTx)}/s</div>
           <div className="cc-graph-mini">
-            <ResponsiveContainer width="100%" height={80}>
+            <ResponsiveContainer width="100%" height={90}>
               <AreaChart data={history.map((h, i) => ({ time: i, val: h.networks.reduce((acc, n) => acc + n.rx_bytes, 0) }))}>
                 <defs><linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient></defs>
                 <Area type="monotone" dataKey="val" stroke="#10b981" fill="url(#colorNet)" strokeWidth={2} isAnimationActive={false} />
@@ -218,7 +230,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
               </PieChart>
             </ResponsiveContainer>
             <div className="donut-label">
-              <span className="cc-value" style={{color: sysColor}}>{cpuTemp.toFixed(1)}°C</span>
+              <span className="cc-value" style={{color: tempColor}}>{cpuTemp.toFixed(1)}°C</span>
               <span className="cc-sub">CPU CORE</span>
             </div>
           </div>
@@ -227,18 +239,41 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
 
       {/* BOTTOM PANELS */}
       <div className="cc-bottom-grid">
-        <div className="cc-events-panel">
+                <div className="cc-events-panel">
           <div className="events-header">
             <h4>Event Log & Active Problems</h4>
             <div className="dropdown">
-              <select className="cc-select">
-                <option>Active Problems</option>
-                <option>Recent Warnings</option>
-                <option>Recent Recoveries</option>
-                <option>All System Events</option>
+              <select className="cc-select" value={eventFilter} onChange={(e) => setEventFilter(e.target.value)}>
+                <option value="Active Problems">Active Problems</option>
+                <option value="All System Events">All System Events</option>
               </select>
             </div>
           </div>
+          <div className="events-list">
+            {eventFilter === 'Active Problems' && (
+              <>
+                {activeProblems.length === 0 ? (
+                  <div className="event-item healthy">✓ System is running optimally. No active problems detected.</div>
+                ) : (
+                  activeProblems.map((prob, i) => (
+                    <div key={i} className="event-item critical">! {prob}</div>
+                  ))
+                )}
+              </>
+            )}
+            {eventFilter === 'All System Events' && (
+              <>
+                <div className="event-item info">i System monitoring initialized successfully.</div>
+                <div className="event-item info">i Hardware polling rate set to 1000ms.</div>
+                {activeProblems.map((prob, i) => (
+                    <div key={`err-${i}`} className="event-item critical">! {prob}</div>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="cc-actions-panel">
           <div className="events-list">
             {activeProblems.length === 0 ? (
               <div className="event-item healthy">✓ System is running optimally. No active problems detected.</div>
