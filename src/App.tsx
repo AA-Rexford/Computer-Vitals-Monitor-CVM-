@@ -41,10 +41,9 @@ const formatBytes = (bytes: number) => {
 
 
 
-function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, history: SystemVitals[] }) {
+function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals | null, history: SystemVitals[], setActiveTab: any }) {
   if (!vitals) return <div className="loading" style={{padding: '2rem'}}>Initializing Command Center...</div>;
     const [statusMsg, setStatusMsg] = useState<string | null>(null);
-  const [showAllTasks, setShowAllTasks] = useState(false);
 
   const showStatus = (msg: string) => {
     setStatusMsg(msg);
@@ -162,7 +161,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
               <AreaChart data={history.map((h, i) => ({ time: i, val: h.cpu_usage }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00e5ff" stopOpacity={0.4}/><stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/></linearGradient></defs>
                 <YAxis domain={[0, 100]} hide />
-                <Area type="monotone" dataKey="val" stroke="#00e5ff" fill="url(#colorCpu)" strokeWidth={2} isAnimationActive={false} />
+                <Area type="monotone" dataKey="val" stroke="#00e5ff" fill="url(#colorCpu)" strokeWidth={2}  />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -180,7 +179,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
               <AreaChart data={history.map((h, i) => ({ time: i, val: (h.ram_used / h.ram_total) * 100 }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorRam" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
                 <YAxis domain={[0, 100]} hide />
-                <Area type="monotone" dataKey="val" stroke="#3b82f6" fill="url(#colorRam)" strokeWidth={2} isAnimationActive={false} />
+                <Area type="monotone" dataKey="val" stroke="#3b82f6" fill="url(#colorRam)" strokeWidth={2}  />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -201,7 +200,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
               })} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorGpu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/></linearGradient></defs>
                 <YAxis domain={[0, 100]} hide />
-                <Area type="monotone" dataKey="val" stroke="#8b5cf6" fill="url(#colorGpu)" strokeWidth={2} isAnimationActive={false} />
+                <Area type="monotone" dataKey="val" stroke="#8b5cf6" fill="url(#colorGpu)" strokeWidth={2}  />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -219,7 +218,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
               <AreaChart data={history.map((h, i) => ({ time: i, val: h.networks.reduce((acc, n) => acc + n.rx_bytes, 0) }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient></defs>
                 <YAxis hide />
-                <Area type="monotone" dataKey="val" stroke="#10b981" fill="url(#colorNet)" strokeWidth={2} isAnimationActive={false} />
+                <Area type="monotone" dataKey="val" stroke="#10b981" fill="url(#colorNet)" strokeWidth={2}  />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -233,7 +232,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           <div className="donut-container" style={{ height: '140px', marginTop: '0px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                <Pie data={storageData} cx="50%" cy="50%" innerRadius={50} outerRadius={65} startAngle={90} endAngle={-270} dataKey="value" stroke="none" isAnimationActive={false}>
+                <Pie data={storageData} cx="50%" cy="50%" innerRadius={50} outerRadius={65} startAngle={90} endAngle={-270} dataKey="value" stroke="none" >
                   {storageData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={entry.fill} /> ))}
                 </Pie>
               </PieChart>
@@ -253,7 +252,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           <div className="donut-container" style={{ height: '140px', marginTop: '0px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                <Pie data={tempData} cx="50%" cy="50%" innerRadius={50} outerRadius={65} startAngle={90} endAngle={-270} dataKey="value" stroke="none" isAnimationActive={false}>
+                <Pie data={tempData} cx="50%" cy="50%" innerRadius={50} outerRadius={65} startAngle={90} endAngle={-270} dataKey="value" stroke="none" >
                   {tempData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={entry.fill} /> ))}
                 </Pie>
               </PieChart>
@@ -273,7 +272,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           <div className="task-manager-section">
             <div className="events-header">
               <h4>Task Manager (Top Processes)</h4>
-              <button className="cc-btn secondary" style={{padding: "0.2rem 0.5rem", fontSize: "0.7rem", marginTop: "-5px"}} onClick={() => setShowAllTasks(!showAllTasks)}>{showAllTasks ? "COLLAPSE" : "SEE ALL TASKS"}</button>
+              <button className="cc-btn secondary" style={{padding: "0.2rem 0.5rem", fontSize: "0.7rem", marginTop: "-5px"}} onClick={() => setActiveTab("tasks")}>SEE ALL TASKS</button>
             </div>
             <div className="events-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {[...vitals.processes].sort((a, b) => b.memory_usage - a.memory_usage).slice(0, 50).map((p) => (
@@ -447,10 +446,96 @@ function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
 }
 
 
+function TaskManagerView({ vitals }: { vitals: SystemVitals | null }) {
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+
+  if (!vitals) return <div className="loading" style={{padding: '2rem'}}>Initializing Task Manager...</div>;
+
+  const showStatus = (msg: string) => {
+    setStatusMsg(msg);
+    setTimeout(() => setStatusMsg(null), 3000);
+  };
+
+  const handleKill = async (pid: number) => {
+    try {
+      const result: string = await invoke("kill_process", { pid });
+      showStatus(result);
+    } catch (e: any) {
+      showStatus("Error: " + e);
+    }
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Filter out the app's own processes so the user doesn't kill the UI
+  const safeProcesses = vitals.processes.filter(p => !p.name.toLowerCase().includes('webkit') && !p.name.toLowerCase().includes('cvm'));
+
+  const sortedProcesses = safeProcesses.sort((a, b) => {
+    const aName = a.name.toLowerCase();
+    const bName = b.name.toLowerCase();
+    const apps = ['brave', 'chrome', 'firefox', 'gnome', 'code', 'spotify', 'slack', 'discord', 'terminal', 'nautilus', 'vlc'];
+    const aIsApp = apps.some(app => aName.includes(app)) ? 0 : 1;
+    const bIsApp = apps.some(app => bName.includes(app)) ? 0 : 1;
+    if (aIsApp !== bIsApp) return aIsApp - bIsApp;
+    return aName.localeCompare(bName) || a.pid - b.pid;
+  });
+
+  return (
+    <div className="system-info" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className="cc-header" style={{ marginBottom: '1rem' }}>
+        <div className="cc-identity">
+          <h3>Task Manager</h3>
+          <span className="cc-os">{sortedProcesses.length} Background Processes & Apps</span>
+        </div>
+      </div>
+      
+      <div className="process-list-container" style={{ flexGrow: 1, overflowY: 'auto', background: 'var(--bg-panel)', borderRadius: '12px', padding: '1rem' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)' }}>
+              <th style={{ padding: '0.5rem' }}>Process Name</th>
+              <th style={{ padding: '0.5rem' }}>PID</th>
+              <th style={{ padding: '0.5rem' }}>CPU Usage</th>
+              <th style={{ padding: '0.5rem' }}>Memory</th>
+              <th style={{ padding: '0.5rem' }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedProcesses.map(p => (
+              <tr key={p.pid} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{p.name}</td>
+                <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)' }}>{p.pid}</td>
+                <td style={{ padding: '0.75rem 0.5rem', color: '#00e5ff' }}>{p.cpu_usage.toFixed(1)}%</td>
+                <td style={{ padding: '0.75rem 0.5rem', color: '#3b82f6' }}>{formatBytes(p.memory_usage)}</td>
+                <td style={{ padding: '0.75rem 0.5rem' }}>
+                  <button onClick={() => handleKill(p.pid)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>END</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {statusMsg && (
+        <div style={{ position: 'fixed', bottom: '20px', right: '20px', background: 'rgba(0, 229, 255, 0.2)', backdropFilter: 'blur(10px)', border: '1px solid #00e5ff', color: '#fff', padding: '1rem', borderRadius: '8px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+          {statusMsg}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function App() {
   const [vitals, setVitals] = useState<SystemVitals | null>(null);
   const [history, setHistory] = useState<SystemVitals[]>([]);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "diagnostics" | "system">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "diagnostics" | "system" | "tasks">("dashboard");
 
   useEffect(() => {
     let isSubscribed = true;
@@ -530,9 +615,10 @@ function App() {
         </header>
 
         <div className="tab-content">
-          {activeTab === 'dashboard' && <DashboardGrid vitals={vitals} history={history} />}
+          {activeTab === 'dashboard' && <DashboardGrid vitals={vitals} history={history} setActiveTab={setActiveTab} />}
           {activeTab === 'diagnostics' && <DiagnosticsView vitals={vitals} />}
           {activeTab === 'system' && <SystemInfoView vitals={vitals} />}
+        {activeTab === 'tasks' && <TaskManagerView vitals={vitals} />}
         </div>
       </main>
     </div>
