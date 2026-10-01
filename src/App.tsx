@@ -150,7 +150,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
             <span className="cc-value">{vitals.cpu_usage.toFixed(1)}%</span>
           </div>
           <div className="cc-sub">Core Temps Normal</div>
-          <div className="cc-graph-mini" style={{ margin: 0 }}>
+          <div className="cc-graph-mini" >
             <ResponsiveContainer width="100%" height={120}>
               <AreaChart data={history.map((h, i) => ({ time: i, val: h.cpu_usage }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00e5ff" stopOpacity={0.4}/><stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/></linearGradient></defs>
@@ -168,7 +168,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
             <span className="cc-value">{((vitals.ram_used / vitals.ram_total) * 100).toFixed(1)}%</span>
           </div>
           <div className="cc-sub">{formatBytes(vitals.ram_used)} / {formatBytes(vitals.ram_total)}</div>
-          <div className="cc-graph-mini" style={{ margin: 0 }}>
+          <div className="cc-graph-mini" >
             <ResponsiveContainer width="100%" height={120}>
               <AreaChart data={history.map((h, i) => ({ time: i, val: (h.ram_used / h.ram_total) * 100 }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorRam" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
@@ -186,7 +186,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
             <span className="cc-value">{gpuTemp > 0 ? 'ACTIVE' : 'IDLE'}</span>
           </div>
           <div className="cc-sub">{sys.gpu_name.length > 25 ? sys.gpu_name.substring(0, 25) + '...' : sys.gpu_name}</div>
-          <div className="cc-graph-mini" style={{ margin: 0 }}>
+          <div className="cc-graph-mini" >
             <ResponsiveContainer width="100%" height={120}>
               <AreaChart data={history.map((h, i) => {
                 const gt = h.sensors.find(s => s.label.toLowerCase().includes('gpu') || s.label.toLowerCase().includes('amd') || s.label.toLowerCase().includes('edge'))?.temperature || 0;
@@ -207,7 +207,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
             <span className="cc-value">LIVE</span>
           </div>
           <div className="cc-sub">↓ {formatBytes(totalRx)}/s  ↑ {formatBytes(totalTx)}/s</div>
-          <div className="cc-graph-mini" style={{ margin: 0 }}>
+          <div className="cc-graph-mini" >
             <ResponsiveContainer width="100%" height={120}>
               <AreaChart data={history.map((h, i) => ({ time: i, val: h.networks.reduce((acc, n) => acc + n.rx_bytes, 0) }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient></defs>
