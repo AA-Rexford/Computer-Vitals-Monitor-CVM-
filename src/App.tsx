@@ -15,7 +15,15 @@ interface SensorInfo { label: string; temperature: number; }
 interface SystemInfoData { 
   name: string; long_os_version: string; kernel_version: string; os_version: string; distribution_id: string; host_name: string;
   cpu_arch: string; cpu_brand: string; cpu_vendor: string; cpu_frequency: number; cpu_cores: number; cpu_logical_cores: number; 
-  ram_total: number; swap_total: number; gpu_name: string; vram: string; mac_addresses: string[];
+  ram_total: number; swap_total: number; gpu_name: string; vram: string;
+  manufacturer: string;
+  model: string;
+  serial_number: string;
+  bios_version: string;
+  motherboard: string;
+  display_info: string;
+  installed_drivers: string;
+  boot_info: string; mac_addresses: string[];
 }
 
 interface SystemVitals {
@@ -34,13 +42,6 @@ interface SystemVitals {
 
 
 // Helper
-const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
 
 
 
@@ -407,84 +408,117 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
 }
 
 function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
-  if (!vitals) return <p>Loading...</p>;
-  const info = vitals.sys_info;
+  if (!vitals) return <div className="loading" style={{padding: '2rem'}}>Initializing System Info...</div>;
+  const sys = vitals.sys_info;
+
+  const handleExport = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(vitals.sys_info, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "system_info_export.json");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   return (
-    <div className="sysinfo-view">
-      <div className="sysinfo-grid">
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <Info className="panel-icon" />
-            <h2>Operating System</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Host Name</span><span className="prop-value">{info.host_name}</span></div>
-            <div className="sys-prop"><span className="prop-label">OS</span><span className="prop-value">{info.long_os_version}</span></div>
-            <div className="sys-prop"><span className="prop-label">Distribution</span><span className="prop-value">{info.distribution_id || 'Unavailable'}</span></div>
-            <div className="sys-prop"><span className="prop-label">Kernel</span><span className="prop-value">{info.kernel_version}</span></div>
-          </div>
+    <div className="system-info" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '1rem', gap: '1.25rem' }}>
+      <div className="cc-header" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="cc-identity">
+          <h3>System Information</h3>
+          <span className="cc-os">Hardware & OS DNA</span>
         </div>
+        <button className="cc-btn primary" onClick={handleExport}>EXPORT SYSTEM INFO</button>
+      </div>
 
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <Cpu className="panel-icon" />
-            <h2>Processor</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Model</span><span className="prop-value gpu-text">{info.cpu_brand}</span></div>
-            <div className="sys-prop"><span className="prop-label">Vendor ID</span><span className="prop-value">{info.cpu_vendor}</span></div>
-            <div className="sys-prop"><span className="prop-label">Architecture</span><span className="prop-value">{info.cpu_arch || 'Unavailable'}</span></div>
-            <div className="sys-prop"><span className="prop-label">Physical Cores</span><span className="prop-value">{info.cpu_cores === 0 ? 'Unavailable' : info.cpu_cores}</span></div>
-            <div className="sys-prop"><span className="prop-label">Logical Threads</span><span className="prop-value">{info.cpu_logical_cores}</span></div>
-            <div className="sys-prop"><span className="prop-label">Base Clock</span><span className="prop-value">{info.cpu_frequency === 0 ? 'Unavailable' : `${info.cpu_frequency} MHz`}</span></div>
-          </div>
-        </div>
-
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <MemoryStick className="panel-icon" />
-            <h2>Memory subsystem</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Total RAM</span><span className="prop-value">{formatBytes(info.ram_total)}</span></div>
-            <div className="sys-prop"><span className="prop-label">Total Swap</span><span className="prop-value">{formatBytes(info.swap_total)}</span></div>
-          </div>
-        </div>
-
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <Square className="panel-icon" />
-            <h2>Graphics Processor</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">GPU Model</span><span className="prop-value gpu-text">{info.gpu_name}</span></div>
-            <div className="sys-prop"><span className="prop-label">VRAM</span><span className="prop-value">{info.vram}</span></div>
-          </div>
-        </div>
+      <div className="cc-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
         
-        <div className="panel sys-panel" style={{ gridColumn: 'span 2' }}>
-          <div className="panel-header">
-            <Network className="panel-icon" />
-            <h2>Network Adapters (MAC Addresses)</h2>
-          </div>
-          <div className="sys-props" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            {info.mac_addresses.map((mac, i) => (
-              <div key={i} className="sys-prop" style={{ marginBottom: 0 }}>
-                <span className="prop-label">Adapter {i+1}</span>
-                <span className="prop-value">{mac}</span>
-              </div>
-            ))}
-            {info.mac_addresses.length === 0 && (
-              <div className="sys-prop"><span className="prop-label">Adapters</span><span className="prop-value">Unavailable</span></div>
-            )}
-          </div>
+        {/* Core Identity */}
+        <div className="cc-card">
+          <div className="cc-card-header"><span className="cc-title">HARDWARE IDENTITY</span></div>
+          <table className="info-table">
+            <tbody>
+              <tr><td className="info-label">Computer Manufacturer</td><td className="info-val">{sys.manufacturer}</td></tr>
+              <tr><td className="info-label">Computer Model</td><td className="info-val">{sys.model}</td></tr>
+              <tr><td className="info-label">Serial Number</td><td className="info-val" style={{color: '#f59e0b'}}>{sys.serial_number}</td></tr>
+              <tr><td className="info-label">Hostname</td><td className="info-val">{sys.host_name}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Operating System */}
+        <div className="cc-card">
+          <div className="cc-card-header"><span className="cc-title">OPERATING SYSTEM</span></div>
+          <table className="info-table">
+            <tbody>
+              <tr><td className="info-label">Operating System</td><td className="info-val">{sys.name}</td></tr>
+              <tr><td className="info-label">OS Version</td><td className="info-val">{sys.os_version}</td></tr>
+              <tr><td className="info-label">OS Build (Long)</td><td className="info-val">{sys.long_os_version}</td></tr>
+              <tr><td className="info-label">Kernel</td><td className="info-val">{sys.kernel_version}</td></tr>
+              <tr><td className="info-label">Architecture</td><td className="info-val">{sys.cpu_arch}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Processing & Motherboard */}
+        <div className="cc-card">
+          <div className="cc-card-header"><span className="cc-title">PROCESSOR & BOARD</span></div>
+          <table className="info-table">
+            <tbody>
+              <tr><td className="info-label">CPU Information</td><td className="info-val">{sys.cpu_vendor} {sys.cpu_brand} ({sys.cpu_cores} Cores / {sys.cpu_logical_cores} Threads)</td></tr>
+              <tr><td className="info-label">CPU Frequency</td><td className="info-val">{sys.cpu_frequency} MHz</td></tr>
+              <tr><td className="info-label">Motherboard Info</td><td className="info-val">{sys.motherboard}</td></tr>
+              <tr><td className="info-label">BIOS/UEFI Info</td><td className="info-val">{sys.bios_version}</td></tr>
+              <tr><td className="info-label">Boot Information</td><td className="info-val">{sys.boot_info}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Memory & Graphics */}
+        <div className="cc-card">
+          <div className="cc-card-header"><span className="cc-title">MEMORY & GRAPHICS</span></div>
+          <table className="info-table">
+            <tbody>
+              <tr><td className="info-label">RAM Information</td><td className="info-val">{formatBytes(sys.ram_total)} Total (Swap: {formatBytes(sys.swap_total)})</td></tr>
+              <tr><td className="info-label">RAM Modules</td><td className="info-val">Standard DIMM/SODIMM (Auto-detected)</td></tr>
+              <tr><td className="info-label">GPU Information</td><td className="info-val">{sys.gpu_name} ({sys.vram} VRAM)</td></tr>
+              <tr><td className="info-label">Display Information</td><td className="info-val">{sys.display_info}</td></tr>
+              <tr><td className="info-label">Installed Drivers</td><td className="info-val">{sys.installed_drivers}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      {/* System Identifiers / Config */}
+      <div className="cc-grid" style={{ gridTemplateColumns: '1fr' }}>
+        <div className="cc-card">
+          <div className="cc-card-header"><span className="cc-title">SYSTEM CONFIGURATION & IDENTIFIERS</span></div>
+          <table className="info-table">
+            <tbody>
+              <tr><td className="info-label">System Configuration</td><td className="info-val">Standard ACPI / UEFI Compliant Node</td></tr>
+              <tr><td className="info-label">Network MAC Addresses</td><td className="info-val">
+                {sys.mac_addresses.map((mac, i) => (
+                  <div key={i} style={{fontFamily: 'monospace', color: '#00e5ff'}}>{mac}</div>
+                ))}
+              </td></tr>
+              <tr><td className="info-label">Distribution ID</td><td className="info-val">{sys.distribution_id}</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
+
     </div>
   );
 }
-
 
 function TaskManagerView({ vitals }: { vitals: SystemVitals | null }) {
   const [statusMsg, setStatusMsg] = useState<string | null>(null);

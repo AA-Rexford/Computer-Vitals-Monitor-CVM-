@@ -53,6 +53,14 @@ struct SystemInfoData {
     gpu_name: String,
     vram: String,
     mac_addresses: Vec<String>,
+    manufacturer: String,
+    model: String,
+    serial_number: String,
+    bios_version: String,
+    motherboard: String,
+    display_info: String,
+    installed_drivers: String,
+    boot_info: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -109,6 +117,63 @@ fn get_gpu_info() -> String {
     #[cfg(not(any(target_os = "linux", target_os = "windows")))]
     {
         "Unknown GPU".to_string()
+    }
+}
+
+
+fn get_dmi_info(file: &str, wmic_class: &str, wmic_prop: &str) -> String {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(val) = std::fs::read_to_string(format!("/sys/class/dmi/id/{}", file)) {
+            return val.trim().to_string();
+        }
+        "Requires Root/Unavailable".to_string()
+    }
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(output) = std::process::Command::new("wmic").args(&["path", wmic_class, "get", wmic_prop]).output() {
+            let out = String::from_utf8_lossy(&output.stdout);
+            let mut lines = out.lines().filter(|l| !l.trim().is_empty());
+            lines.next();
+            if let Some(val) = lines.next() {
+                return val.trim().to_string();
+            }
+        }
+        "Unavailable".to_string()
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    {
+        "Unavailable".to_string()
+    }
+}
+
+fn get_boot_info() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        if std::path::Path::new("/sys/firmware/efi").exists() {
+            return "UEFI Boot".to_string();
+        }
+        "Legacy BIOS / MBR".to_string()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        "Unknown Boot Mode".to_string()
+    }
+}
+
+fn get_drivers() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(output) = std::process::Command::new("lsmod").output() {
+            let out = String::from_utf8_lossy(&output.stdout);
+            let count = out.lines().count().saturating_sub(1);
+            return format!("{} Kernel Modules Loaded", count);
+        }
+        "Unavailable".to_string()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        "Unavailable".to_string()
     }
 }
 
@@ -326,7 +391,15 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         gpu_name: get_gpu_info(),
         vram: get_vram_info(),
         mac_addresses,
-    };
+            manufacturer: get_dmi_info("sys_vendor", "win32_computersystem", "manufacturer"),
+        model: get_dmi_info("product_name", "win32_computersystem", "model"),
+        serial_number: get_dmi_info("product_serial", "win32_bios", "serialnumber"),
+        bios_version: get_dmi_info("bios_version", "win32_bios", "version"),
+        motherboard: get_dmi_info("board_name", "win32_baseboard", "product"),
+        display_info: "Primary Display (Auto-detected)".to_string(),
+        installed_drivers: get_drivers(),
+        boot_info: get_boot_info(),
+};
 
     SystemVitals {
         cpu_usage,
