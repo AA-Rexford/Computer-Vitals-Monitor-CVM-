@@ -1,47 +1,15 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus, Square, Thermometer, LayoutDashboard, Stethoscope, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { AreaChart, Area, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import "./App.css";
+import re
 
-interface DiskInfo { name: string; file_system: string; mount_point: string; total_space: number; available_space: number; is_removable: boolean; }
-interface ProcessInfo { pid: number; name: string; cpu_usage: number;
-  uptime: number; memory_usage: number; }
-interface NetworkInfo { name: string; rx_bytes: number; tx_bytes: number; }
-interface SensorInfo { label: string; temperature: number; }
-interface SystemInfoData { 
-  name: string; long_os_version: string; kernel_version: string; os_version: string; distribution_id: string; host_name: string;
-  cpu_arch: string; cpu_brand: string; cpu_vendor: string; cpu_frequency: number; cpu_cores: number; cpu_logical_cores: number; 
-  ram_total: number; swap_total: number; gpu_name: string; vram: string; mac_addresses: string[];
-}
+with open("src/App.tsx", "r") as f:
+    content = f.read()
 
-interface SystemVitals {
-  cpu_usage: number;
-  uptime: number;
-  ram_total: number;
-  ram_used: number;
-  disks: DiskInfo[];
-  processes: ProcessInfo[];
-  networks: NetworkInfo[];
-  sensors: SensorInfo[];
-  sys_info: SystemInfoData;
-}
+dash_start = content.find("function DashboardGrid")
+diag_start = content.find("function DiagnosticsView")
 
+prefix = content[:dash_start]
+suffix = content[diag_start:]
 
-// Helper
-const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-
-
-
-function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, history: SystemVitals[] }) {
+new_dashboard = """function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, history: SystemVitals[] }) {
   if (!vitals) return <div className="loading" style={{padding: '2rem'}}>Initializing Command Center...</div>;
   const sys = vitals.sys_info;
 
@@ -303,229 +271,16 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
     </div>
   );
 }
+"""
 
+with open("src/App.tsx", "w") as f:
+    f.write(prefix + new_dashboard + "\n\n" + suffix)
 
-function DiagnosticsView({ vitals }: { vitals: SystemVitals | null }) {
-  if (!vitals) return <p>Loading diagnostics...</p>;
+# We need to make sure YAxis is imported
+if "YAxis" not in open("src/App.tsx").read()[:500]:
+    with open("src/App.tsx", "r") as f:
+        c = f.read()
+    c = c.replace("import { AreaChart, Area, ResponsiveContainer,", "import { AreaChart, Area, YAxis, ResponsiveContainer,")
+    with open("src/App.tsx", "w") as f:
+        f.write(c)
 
-  const issues = [];
-  if (vitals.cpu_usage > 90) issues.push({ severity: 'critical', msg: `CPU Usage is critically high (${vitals.cpu_usage.toFixed(1)}%)` });
-  else if (vitals.cpu_usage > 75) issues.push({ severity: 'warning', msg: `CPU Usage is high (${vitals.cpu_usage.toFixed(1)}%)` });
-
-  const ramPercent = (vitals.ram_used / vitals.ram_total) * 100;
-  if (ramPercent > 95) issues.push({ severity: 'critical', msg: `RAM is almost fully exhausted (${ramPercent.toFixed(1)}%)` });
-  else if (ramPercent > 85) issues.push({ severity: 'warning', msg: `RAM usage is high (${ramPercent.toFixed(1)}%)` });
-
-  vitals.sensors.forEach(s => {
-    if (s.temperature > 85) issues.push({ severity: 'critical', msg: `Thermal anomaly: ${s.label} is overheating (${s.temperature}°C)` });
-    else if (s.temperature > 75) issues.push({ severity: 'warning', msg: `Thermal warning: ${s.label} is running hot (${s.temperature}°C)` });
-  });
-
-  return (
-    <div className="diagnostics-view">
-      <div className="diag-header">
-        <Stethoscope size={32} className="diag-icon" />
-        <div>
-          <h2>System Diagnostics Engine</h2>
-          <p>Real-time analysis of hardware evidence</p>
-        </div>
-      </div>
-      
-      <div className="issues-list">
-        {issues.length === 0 ? (
-          <div className="issue-card healthy">
-            <CheckCircle2 size={24} />
-            <div className="issue-text">
-              <h3>System Healthy</h3>
-              <p>No anomalies detected in CPU, Memory, or Thermals.</p>
-            </div>
-          </div>
-        ) : (
-          issues.map((issue, i) => (
-            <div key={i} className={`issue-card ${issue.severity}`}>
-              <AlertTriangle size={24} />
-              <div className="issue-text">
-                <h3>{issue.severity === 'critical' ? 'Critical Anomaly' : 'Warning'}</h3>
-                <p>{issue.msg}</p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
-  if (!vitals) return <p>Loading...</p>;
-  const info = vitals.sys_info;
-
-  return (
-    <div className="sysinfo-view">
-      <div className="sysinfo-grid">
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <Info className="panel-icon" />
-            <h2>Operating System</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Host Name</span><span className="prop-value">{info.host_name}</span></div>
-            <div className="sys-prop"><span className="prop-label">OS</span><span className="prop-value">{info.long_os_version}</span></div>
-            <div className="sys-prop"><span className="prop-label">Distribution</span><span className="prop-value">{info.distribution_id || 'Unavailable'}</span></div>
-            <div className="sys-prop"><span className="prop-label">Kernel</span><span className="prop-value">{info.kernel_version}</span></div>
-          </div>
-        </div>
-
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <Cpu className="panel-icon" />
-            <h2>Processor</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Model</span><span className="prop-value gpu-text">{info.cpu_brand}</span></div>
-            <div className="sys-prop"><span className="prop-label">Vendor ID</span><span className="prop-value">{info.cpu_vendor}</span></div>
-            <div className="sys-prop"><span className="prop-label">Architecture</span><span className="prop-value">{info.cpu_arch || 'Unavailable'}</span></div>
-            <div className="sys-prop"><span className="prop-label">Physical Cores</span><span className="prop-value">{info.cpu_cores === 0 ? 'Unavailable' : info.cpu_cores}</span></div>
-            <div className="sys-prop"><span className="prop-label">Logical Threads</span><span className="prop-value">{info.cpu_logical_cores}</span></div>
-            <div className="sys-prop"><span className="prop-label">Base Clock</span><span className="prop-value">{info.cpu_frequency === 0 ? 'Unavailable' : `${info.cpu_frequency} MHz`}</span></div>
-          </div>
-        </div>
-
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <MemoryStick className="panel-icon" />
-            <h2>Memory subsystem</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Total RAM</span><span className="prop-value">{formatBytes(info.ram_total)}</span></div>
-            <div className="sys-prop"><span className="prop-label">Total Swap</span><span className="prop-value">{formatBytes(info.swap_total)}</span></div>
-          </div>
-        </div>
-
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <Square className="panel-icon" />
-            <h2>Graphics Processor</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">GPU Model</span><span className="prop-value gpu-text">{info.gpu_name}</span></div>
-            <div className="sys-prop"><span className="prop-label">VRAM</span><span className="prop-value">{info.vram}</span></div>
-          </div>
-        </div>
-        
-        <div className="panel sys-panel" style={{ gridColumn: 'span 2' }}>
-          <div className="panel-header">
-            <Network className="panel-icon" />
-            <h2>Network Adapters (MAC Addresses)</h2>
-          </div>
-          <div className="sys-props" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            {info.mac_addresses.map((mac, i) => (
-              <div key={i} className="sys-prop" style={{ marginBottom: 0 }}>
-                <span className="prop-label">Adapter {i+1}</span>
-                <span className="prop-value">{mac}</span>
-              </div>
-            ))}
-            {info.mac_addresses.length === 0 && (
-              <div className="sys-prop"><span className="prop-label">Adapters</span><span className="prop-value">Unavailable</span></div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-function App() {
-  const [vitals, setVitals] = useState<SystemVitals | null>(null);
-  const [history, setHistory] = useState<SystemVitals[]>([]);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "diagnostics" | "system">("dashboard");
-
-  useEffect(() => {
-    let isSubscribed = true;
-
-    const fetchVitals = async () => {
-      try {
-        const data: SystemVitals = await invoke("get_system_vitals");
-        if (!isSubscribed) return;
-        
-        setVitals(data);
-        
-        setHistory(prev => {
-          const newHistory = [...prev, data];
-          return newHistory.length > 30 ? newHistory.slice(newHistory.length - 30) : newHistory;
-        });
-      } catch (err) {
-        console.error("Failed to fetch vitals:", err);
-      }
-    };
-
-    fetchVitals();
-    const interval = setInterval(fetchVitals, 1000);
-
-    return () => {
-      isSubscribed = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  const appWindow = getCurrentWindow();
-
-  return (
-    <div className="app-layout">
-      <aside className="sidebar" data-tauri-drag-region>
-        <div className="brand" data-tauri-drag-region>
-          <Activity className="brand-icon" />
-          <h1 data-tauri-drag-region>C V M</h1>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <LayoutDashboard size={18} /> <span className="nav-text">Dashboard</span>
-          </button>
-          <button className={`nav-item ${activeTab === 'diagnostics' ? 'active' : ''}`} onClick={() => setActiveTab('diagnostics')}>
-            <Stethoscope size={18} /> <span className="nav-text">Diagnostics</span>
-          </button>
-          <button className={`nav-item ${activeTab === 'system' ? 'active' : ''}`} onClick={() => setActiveTab('system')}>
-            <Info size={18} /> <span className="nav-text">System Info</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="status-badge">
-            <span className="status-dot"></span>
-            LIVE
-          </div>
-        </div>
-      </aside>
-
-      <main className="main-content">
-        <header className="top-bar" data-tauri-drag-region>
-          <h2 className="page-title" data-tauri-drag-region>
-            {activeTab === 'dashboard' ? 'Overview' : activeTab === 'diagnostics' ? 'Diagnostics Engine' : 'System Identity'}
-          </h2>
-          
-          <div className="window-controls">
-            <button className="control-btn" onClick={() => appWindow.minimize()} title="Minimize">
-              <Minus size={18} />
-            </button>
-            <button className="control-btn" onClick={() => appWindow.toggleMaximize()} title="Maximize">
-              <Square size={14} />
-            </button>
-            <button className="control-btn close-btn" onClick={() => appWindow.close()} title="Close">
-              <X size={18} />
-            </button>
-          </div>
-        </header>
-
-        <div className="tab-content">
-          {activeTab === 'dashboard' && <DashboardGrid vitals={vitals} history={history} />}
-          {activeTab === 'diagnostics' && <DiagnosticsView vitals={vitals} />}
-          {activeTab === 'system' && <SystemInfoView vitals={vitals} />}
-        </div>
-      </main>
-    </div>
-  );
-}
-
-export default App;
