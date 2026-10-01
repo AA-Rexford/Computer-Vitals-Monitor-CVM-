@@ -151,7 +151,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </div>
           <div className="cc-sub">Core Temps Normal</div>
           <div className="cc-graph-mini" style={{ margin: 0 }}>
-            <ResponsiveContainer width="100%" height={100}>
+            <ResponsiveContainer width="100%" height={120}>
               <AreaChart data={history.map((h, i) => ({ time: i, val: h.cpu_usage }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00e5ff" stopOpacity={0.4}/><stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/></linearGradient></defs>
                 <YAxis domain={[0, 100]} hide />
@@ -169,7 +169,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </div>
           <div className="cc-sub">{formatBytes(vitals.ram_used)} / {formatBytes(vitals.ram_total)}</div>
           <div className="cc-graph-mini" style={{ margin: 0 }}>
-            <ResponsiveContainer width="100%" height={100}>
+            <ResponsiveContainer width="100%" height={120}>
               <AreaChart data={history.map((h, i) => ({ time: i, val: (h.ram_used / h.ram_total) * 100 }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorRam" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
                 <YAxis domain={[0, 100]} hide />
@@ -187,7 +187,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </div>
           <div className="cc-sub">{sys.gpu_name.length > 25 ? sys.gpu_name.substring(0, 25) + '...' : sys.gpu_name}</div>
           <div className="cc-graph-mini" style={{ margin: 0 }}>
-            <ResponsiveContainer width="100%" height={100}>
+            <ResponsiveContainer width="100%" height={120}>
               <AreaChart data={history.map((h, i) => {
                 const gt = h.sensors.find(s => s.label.toLowerCase().includes('gpu') || s.label.toLowerCase().includes('amd') || s.label.toLowerCase().includes('edge'))?.temperature || 0;
                 return { time: i, val: gt };
@@ -208,7 +208,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </div>
           <div className="cc-sub">↓ {formatBytes(totalRx)}/s  ↑ {formatBytes(totalTx)}/s</div>
           <div className="cc-graph-mini" style={{ margin: 0 }}>
-            <ResponsiveContainer width="100%" height={100}>
+            <ResponsiveContainer width="100%" height={120}>
               <AreaChart data={history.map((h, i) => ({ time: i, val: h.networks.reduce((acc, n) => acc + n.rx_bytes, 0) }))} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs><linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient></defs>
                 <YAxis hide />
@@ -269,7 +269,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
               <span className="cc-sub">{vitals.processes.length} listed</span>
             </div>
             <div className="events-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {vitals.processes.slice(0, 100).map((p) => (
+              {[...vitals.processes].sort((a, b) => b.memory_usage - a.memory_usage).slice(0, 50).map((p) => (
                 <div key={p.pid} className="process-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', background: 'rgba(255,255,255,0.03)', marginBottom: '0.25rem', borderRadius: '4px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{p.name}</span>
@@ -278,7 +278,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <span style={{ color: '#00e5ff', fontSize: '0.85rem' }}>{p.cpu_usage.toFixed(1)}% CPU</span>
                     <span style={{ color: '#3b82f6', fontSize: '0.85rem', minWidth: '60px', textAlign: 'right' }}>{formatBytes(p.memory_usage)}</span>
-                    <button onClick={() => handleKill(p.pid)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}>KILL</button>
+                    <button onClick={() => handleKill(p.pid)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', marginLeft: '0.5rem' }}>END</button>
                   </div>
                 </div>
               ))}
