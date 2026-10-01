@@ -119,6 +119,12 @@ body {
 }
 
 .top-bar {
+  z-index: 50;
+  position: relative;
+  padding: 1.5rem 2rem;
+  background: var(--bg-deep);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+
   display: flex;
   justify-content: space-between;
   align-items: center;
