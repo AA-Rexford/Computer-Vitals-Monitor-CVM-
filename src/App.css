@@ -121,12 +121,13 @@ body {
 .top-bar {
   z-index: 50;
   position: relative;
-  padding: 0.5rem 1rem;
-  background: var(--bg-deep);
+  padding: 0.5rem;
+  background: transparent;
   display: flex;
-  justify-content: flex-start;
-  align-items: center;
+  justify-content: flex-end;
+  align-items: flex-start;
   -webkit-app-region: drag;
+  height: 30px;
 }
 
 .page-title {
@@ -137,7 +138,7 @@ body {
   display: flex;
   gap: 0.5rem;
   -webkit-app-region: no-drag;
-  margin-right: auto;
+  margin-left: auto;
 }
 
 .control-btn {
@@ -586,13 +587,14 @@ body {
 }
 
 .cc-graph-mini {
-  margin-top: auto;
-  height: 100px;
+  flex-grow: 1;
+  margin-top: 1rem;
   margin-left: -1rem;
   margin-right: -1rem;
   margin-bottom: -1rem;
   overflow: hidden;
   border-radius: 0 0 12px 12px;
+  min-height: 80px;
 }
 
 .cc-bottom-grid {
