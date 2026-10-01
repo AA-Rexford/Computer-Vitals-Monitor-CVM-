@@ -238,7 +238,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
       </div>
 
       <div className="cc-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-        <div className="cc-card" style={{ alignItems: 'center' }}>
+        <div className="cc-card" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div className="cc-card-header" style={{ width: '100%', marginBottom: '1rem' }}>
             <span className="cc-title"><HardDrive size={14} /> STORAGE USAGE</span>
           </div>
@@ -253,7 +253,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </ResponsiveContainer>
         </div>
         
-        <div className="cc-card" style={{ alignItems: 'center' }}>
+        <div className="cc-card" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div className="cc-card-header" style={{ width: '100%', marginBottom: '1rem' }}>
             <span className="cc-title"><Thermometer size={14} /> CPU / GPU TEMP</span>
           </div>
@@ -396,7 +396,7 @@ function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
 
   return (
     <div className="system-info" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '1rem', gap: '1.25rem' }}>
-      <div className="cc-header" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="cc-header" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div className="cc-identity">
           <h3>System Information</h3>
           <span className="cc-os">Hardware & OS DNA</span>
@@ -747,6 +747,12 @@ function App() {
         <nav className="sidebar-nav">
           <button className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
             <LayoutDashboard size={18} /> <span className="nav-text">Dashboard</span>
+          </button>
+          <button className={`nav-item ${activeTab === 'hardware' ? 'active' : ''}`} onClick={() => setActiveTab('hardware')}>
+            <Cpu size={18} /> <span className="nav-text">Hardware</span>
+          </button>
+          <button className={`nav-item ${activeTab === 'tasks' ? 'active' : ''}`} onClick={() => setActiveTab('tasks')}>
+            <Activity size={18} /> <span className="nav-text">Processes</span>
           </button>
           <button className={`nav-item ${activeTab === 'diagnostics' ? 'active' : ''}`} onClick={() => setActiveTab('diagnostics')}>
             <Stethoscope size={18} /> <span className="nav-text">Diagnostics</span>
