@@ -16,9 +16,17 @@ struct DiskInfo {
 #[derive(Serialize, Clone)]
 struct ProcessInfo {
     pid: u32,
+    parent_pid: u32,
     name: String,
+    user: String,
     cpu_usage: f32,
     memory_usage: u64,
+    disk_read: u64,
+    disk_write: u64,
+    start_time: u64,
+    status: String,
+    executable: String,
+    command: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -219,6 +227,29 @@ fn get_vram_info() -> String {
 }
 
 
+
+#[tauri::command]
+async fn suspend_process(pid: usize) -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("kill").args(&["-STOP", &pid.to_string()]).output().map_err(|e| e.to_string())?;
+        return Ok(format!("Suspended process {}", pid));
+    }
+    #[cfg(not(target_os = "linux"))]
+    Err("Suspend not supported on this OS".to_string())
+}
+
+#[tauri::command]
+async fn resume_process(pid: usize) -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("kill").args(&["-CONT", &pid.to_string()]).output().map_err(|e| e.to_string())?;
+        return Ok(format!("Resumed process {}", pid));
+    }
+    #[cfg(not(target_os = "linux"))]
+    Err("Resume not supported on this OS".to_string())
+}
+
 #[tauri::command]
 async fn kill_process(pid: usize) -> Result<String, String> {
     #[cfg(target_os = "linux")]
@@ -330,11 +361,22 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         is_removable: d.is_removable(),
     }).collect();
 
-    let mut proc_list: Vec<ProcessInfo> = sys.processes().iter().map(|(pid, p)| ProcessInfo {
-        pid: pid.as_u32(),
-        name: p.name().to_string_lossy().into_owned(),
-        cpu_usage: p.cpu_usage(),
-        memory_usage: p.memory(),
+    let mut proc_list: Vec<ProcessInfo> = sys.processes().iter().map(|(pid, p)| {
+        let du = p.disk_usage();
+        ProcessInfo {
+            pid: pid.as_u32(),
+            parent_pid: p.parent().map(|p| p.as_u32()).unwrap_or(0),
+            name: p.name().to_string_lossy().into_owned(),
+            user: p.user_id().map(|u| u.to_string()).unwrap_or_else(|| "System".to_string()),
+            cpu_usage: p.cpu_usage(),
+            memory_usage: p.memory(),
+            disk_read: du.read_bytes,
+            disk_write: du.written_bytes,
+            start_time: p.start_time(),
+            status: p.status().to_string(),
+            executable: p.exe().unwrap_or_else(|| std::path::Path::new("")).to_string_lossy().into_owned(),
+            command: p.cmd().iter().map(|s| s.to_string_lossy().into_owned()).collect::<Vec<_>>().join(" "),
+        }
     }).collect();
 
     // Sort by CPU usage descending
@@ -433,7 +475,7 @@ pub fn run() {
             components: Mutex::new(components),
         })
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_system_vitals, kill_process, quick_action])
+        .invoke_handler(tauri::generate_handler![get_system_vitals, kill_process, quick_action, suspend_process, resume_process])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

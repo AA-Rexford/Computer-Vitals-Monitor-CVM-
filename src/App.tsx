@@ -6,10 +6,20 @@ import { AreaChart, Area, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from
 import "./App.css";
 
 interface DiskInfo { name: string; file_system: string; mount_point: string; total_space: number; available_space: number; is_removable: boolean; }
-interface ProcessInfo { pid: number; name: string; cpu_usage: number;
+interface ProcessInfo { 
+  pid: number; 
+  name: string; 
+  cpu_usage: number;
+  memory_usage: number; 
+  parent_pid: number;
+  user: string;
   disk_read: number;
   disk_write: number;
-  uptime: number; memory_usage: number; }
+  start_time: number;
+  status: string;
+  executable: string;
+  command: string;
+}
 interface NetworkInfo { name: string; rx_bytes: number; tx_bytes: number; }
 interface SensorInfo { label: string; temperature: number; }
 interface SystemInfoData { 
@@ -47,7 +57,7 @@ interface SystemVitals {
 
 
 
-function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals | null, history: SystemVitals[], setActiveTab: any }) {
+function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, history: SystemVitals[] }) {
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
   if (!vitals) return <div className="loading" style={{padding: '2rem'}}>Initializing Telemetry...</div>;
@@ -67,16 +77,6 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
     setStatusMsg(msg);
     setTimeout(() => setStatusMsg(null), 3000);
   };
-
-  const handleKill = async (pid: number) => {
-    try {
-      const result: string = await invoke("kill_process", { pid });
-      showStatus(result);
-    } catch (e: any) {
-      showStatus("Error: " + e);
-    }
-  };
-
   const handleQuickAction = async (action: string) => {
     try {
       const result: string = await invoke("quick_action", { action });
@@ -84,20 +84,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
     } catch (e: any) {
       showStatus("Error: " + e);
     }
-  };
-
-  const safeProcesses = vitals.processes.filter(p => !p.name.toLowerCase().includes('webkit') && !p.name.toLowerCase().includes('cvm') && p.name !== 'antigravity');
-  const sortedProcesses = safeProcesses.sort((a, b) => {
-    const aName = a.name.toLowerCase();
-    const bName = b.name.toLowerCase();
-    const apps = ['brave', 'chrome', 'firefox', 'gnome', 'code', 'spotify', 'slack', 'discord', 'terminal', 'nautilus', 'vlc'];
-    const aIsApp = apps.some(app => aName.includes(app)) ? 0 : 1;
-    const bIsApp = apps.some(app => bName.includes(app)) ? 0 : 1;
-    if (aIsApp !== bIsApp) return aIsApp - bIsApp;
-    return aName.localeCompare(bName) || a.pid - b.pid;
-  });
-
-  return (
+  };  return (
     <div className="command-center" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '1rem', gap: '1.25rem' }}>
       
       <div className="cc-header">
@@ -309,28 +296,6 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
             <div style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>[System Event] Telemetry service initialized</div>
             <div style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>[System Event] PCIe buses enumerated successfully</div>
             <div style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>[System Event] Local database connection ready</div>
-          </div>
-        </div>
-
-        <div className="cc-card panel-card" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-          <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h4>TASK MANAGER (TOP)</h4>
-            <button className="cc-btn secondary" style={{padding: "0.2rem 0.5rem", fontSize: "0.7rem", marginTop: "-5px"}} onClick={() => setActiveTab("tasks")}>SEE ALL TASKS</button>
-          </div>
-          <div className="panel-content">
-            {sortedProcesses.slice(0, 5).map((p) => (
-              <div className="task-row" key={p.pid}>
-                <div className="task-info">
-                  <span className="task-name">{p.name.substring(0, 20)}</span>
-                  <span className="task-pid">PID: {p.pid}</span>
-                </div>
-                <div className="task-stats">
-                  <span className="t-cpu">{p.cpu_usage.toFixed(1)}% CPU</span>
-                  <span className="t-mem">{formatBytes(p.memory_usage)}</span>
-                  <button onClick={() => handleKill(p.pid)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', marginLeft: '0.5rem' }}>END</button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -819,7 +784,7 @@ function App() {
         </header>
 
         <div className="tab-content">
-          {activeTab === 'dashboard' && <DashboardGrid vitals={vitals} history={history} setActiveTab={setActiveTab} />}
+          {activeTab === 'dashboard' && <DashboardGrid vitals={vitals} history={history} />}
           {activeTab === 'diagnostics' && <DiagnosticsView vitals={vitals} />}
           {activeTab === 'system' && <SystemInfoView vitals={vitals} />}
         {activeTab === 'hardware' && <HardwareView vitals={vitals} history={history} />}
