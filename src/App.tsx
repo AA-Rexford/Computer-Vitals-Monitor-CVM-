@@ -43,6 +43,13 @@ const formatBytes = (bytes: number) => {
 
 function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, history: SystemVitals[] }) {
   if (!vitals) return <div className="loading" style={{padding: '2rem'}}>Initializing Command Center...</div>;
+    const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [showAllTasks, setShowAllTasks] = useState(false);
+
+  const showStatus = (msg: string) => {
+    setStatusMsg(msg);
+    setTimeout(() => setStatusMsg(null), 3000);
+  };
   const sys = vitals.sys_info;
 
   const gpuSensor = vitals.sensors.find(s => s.label.toLowerCase().includes('gpu') || s.label.toLowerCase().includes('amd') || s.label.toLowerCase().includes('radeon') || s.label.toLowerCase().includes('edge'));
@@ -106,18 +113,18 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
   const handleQuickAction = async (action: string) => {
     try {
       const result: string = await invoke("quick_action", { action });
-      alert(result);
+      showStatus(result);
     } catch (e: any) {
-      alert("Error: " + e);
+      showStatus("Error: " + e);
     }
   };
 
   const handleKill = async (pid: number) => {
     try {
       const result: string = await invoke("kill_process", { pid });
-      alert(result);
+      showStatus(result);
     } catch (e: any) {
-      alert("Error: " + e);
+      showStatus("Error: " + e);
     }
   };
 
@@ -266,7 +273,7 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           <div className="task-manager-section">
             <div className="events-header">
               <h4>Task Manager (Top Processes)</h4>
-              <span className="cc-sub">{vitals.processes.length} listed</span>
+              <button className="cc-btn secondary" style={{padding: "0.2rem 0.5rem", fontSize: "0.7rem", marginTop: "-5px"}} onClick={() => setShowAllTasks(!showAllTasks)}>{showAllTasks ? "COLLAPSE" : "SEE ALL TASKS"}</button>
             </div>
             <div className="events-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {[...vitals.processes].sort((a, b) => b.memory_usage - a.memory_usage).slice(0, 50).map((p) => (
@@ -300,12 +307,16 @@ function DashboardGrid({ vitals, history }: { vitals: SystemVitals | null, histo
           </div>
         </div>
       </div>
+    
+      {statusMsg && (
+        <div style={{ position: 'fixed', bottom: '20px', right: '20px', background: 'rgba(0, 229, 255, 0.2)', backdropFilter: 'blur(10px)', border: '1px solid #00e5ff', color: '#fff', padding: '1rem', borderRadius: '8px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+          {statusMsg}
+        </div>
+      )}
+
     </div>
   );
-}
-
-
-function DiagnosticsView({ vitals }: { vitals: SystemVitals | null }) {
+}function DiagnosticsView({ vitals }: { vitals: SystemVitals | null }) {
   if (!vitals) return <p>Loading diagnostics...</p>;
 
   const issues = [];

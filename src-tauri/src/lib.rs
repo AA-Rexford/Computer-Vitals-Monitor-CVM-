@@ -153,7 +153,7 @@ fn get_vram_info() -> String {
 
 
 #[tauri::command]
-fn kill_process(pid: usize) -> Result<String, String> {
+async fn kill_process(pid: usize) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         std::process::Command::new("kill").args(&["-9", &pid.to_string()]).output().map_err(|e| e.to_string())?;
@@ -173,7 +173,7 @@ fn kill_process(pid: usize) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn quick_action(action: String) -> Result<String, String> {
+async fn quick_action(action: String) -> Result<String, String> {
     match action.as_str() {
         "flush_ram" => {
             #[cfg(target_os = "linux")]
