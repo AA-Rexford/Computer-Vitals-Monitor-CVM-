@@ -661,3 +661,67 @@ body {
 .cc-btn.secondary:hover {
   background: rgba(255, 255, 255, 0.1);
 }
+
+/* COMMAND CENTER - RECENT ADDITIONS */
+.donut-card {
+  align-items: center;
+  position: relative;
+  overflow: visible;
+}
+.donut-container {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: -10px;
+}
+.donut-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.donut-label .cc-value { font-size: 1.1rem; }
+.donut-label .cc-sub { margin-bottom: 0; font-size: 0.65rem; }
+
+.events-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.events-header h4 { margin-bottom: 0; }
+
+.dropdown {
+  position: relative;
+}
+.cc-select {
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  outline: none;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.cc-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.cc-events-panel .events-list {
+  max-height: 140px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}

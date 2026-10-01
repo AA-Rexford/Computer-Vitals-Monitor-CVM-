@@ -58,6 +58,7 @@ struct SystemInfoData {
 #[derive(Serialize, Clone)]
 struct SystemVitals {
     cpu_usage: f32,
+    uptime: u64,
     ram_total: u64,
     ram_used: u64,
     disks: Vec<DiskInfo>,
@@ -245,6 +246,7 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
 
     SystemVitals {
         cpu_usage,
+        uptime: System::uptime(),
         ram_total,
         ram_used,
         disks: disk_list,
