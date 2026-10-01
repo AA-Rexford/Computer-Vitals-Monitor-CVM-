@@ -58,6 +58,8 @@ struct SystemInfoData {
 #[derive(Serialize, Clone)]
 struct SystemVitals {
     cpu_usage: f32,
+    disk_read: u64,
+    disk_write: u64,
     uptime: u64,
     ram_total: u64,
     ram_used: u64,
@@ -239,6 +241,14 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
     components.refresh(true);
     
     let cpu_usage = sys.global_cpu_usage();
+    let mut disk_read = 0;
+    let mut disk_write = 0;
+    for (_, p) in sys.processes() {
+        let du = p.disk_usage();
+        disk_read += du.read_bytes;
+        disk_write += du.written_bytes;
+    }
+
     let ram_total = sys.total_memory();
     let ram_used = sys.used_memory();
 
@@ -264,7 +274,7 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
 
     // Sort by CPU usage descending
     proc_list.sort_by(|a, b| b.cpu_usage.partial_cmp(&a.cpu_usage).unwrap_or(std::cmp::Ordering::Equal));
-    proc_list.truncate(15);
+    // proc_list.truncate(15);
 
     let mut net_list: Vec<NetworkInfo> = networks.iter().filter(|(name, _)| {
         let n = name.to_lowercase();
@@ -320,6 +330,8 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
 
     SystemVitals {
         cpu_usage,
+        disk_read,
+        disk_write,
         uptime: System::uptime(),
         ram_total,
         ram_used,

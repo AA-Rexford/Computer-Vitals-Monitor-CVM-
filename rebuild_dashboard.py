@@ -1,51 +1,20 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { SquareTerminal, Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus, Square, Thermometer, LayoutDashboard, Stethoscope, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { AreaChart, Area, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import "./App.css";
+import re
 
-interface DiskInfo { name: string; file_system: string; mount_point: string; total_space: number; available_space: number; is_removable: boolean; }
-interface ProcessInfo { pid: number; name: string; cpu_usage: number;
-  disk_read: number;
-  disk_write: number;
-  uptime: number; memory_usage: number; }
-interface NetworkInfo { name: string; rx_bytes: number; tx_bytes: number; }
-interface SensorInfo { label: string; temperature: number; }
-interface SystemInfoData { 
-  name: string; long_os_version: string; kernel_version: string; os_version: string; distribution_id: string; host_name: string;
-  cpu_arch: string; cpu_brand: string; cpu_vendor: string; cpu_frequency: number; cpu_cores: number; cpu_logical_cores: number; 
-  ram_total: number; swap_total: number; gpu_name: string; vram: string; mac_addresses: string[];
-}
+with open("src/App.tsx", "r") as f:
+    content = f.read()
 
-interface SystemVitals {
-  cpu_usage: number;
-  disk_read: number;
-  disk_write: number;
-  uptime: number;
-  ram_total: number;
-  ram_used: number;
-  disks: DiskInfo[];
-  processes: ProcessInfo[];
-  networks: NetworkInfo[];
-  sensors: SensorInfo[];
-  sys_info: SystemInfoData;
-}
+# 1. Update SystemVitals interface
+if "disk_read: number;" not in content:
+    content = content.replace("cpu_usage: number;", "cpu_usage: number;\n  disk_read: number;\n  disk_write: number;")
 
+# 2. Rebuild DashboardGrid to include the new graphs and the event log
+# First, let's locate DashboardGrid function
+dash_start = content.find("function DashboardGrid")
+dash_end = content.find("function TaskManagerView", dash_start)
+if dash_end == -1:
+    dash_end = content.find("function DiagnosticsView", dash_start)
 
-// Helper
-const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-
-
-
-
+dashboard_code = """
 function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals | null, history: SystemVitals[], setActiveTab: any }) {
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
@@ -99,6 +68,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
   return (
     <div className="command-center" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '1rem', gap: '1.25rem' }}>
       
+      {/* 1. Overall System Status, Uptime, Power, Identity */}
       <div className="cc-header">
         <div className="cc-identity">
           <h3>{sys.host_name} / {sys.cpu_brand} with {sys.gpu_name}</h3>
@@ -113,6 +83,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
         </div>
       </div>
 
+      {/* 2. Core Metrics Grid (Live Graphs: CPU, RAM, GPU) */}
       <div className="cc-grid">
         <div className="cc-card">
           <div className="cc-card-header">
@@ -181,6 +152,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
         </div>
       </div>
 
+      {/* 3. Secondary Grid (Live Graphs: Network, Disk, Temp) */}
       <div className="cc-grid">
         <div className="cc-card">
           <div className="cc-card-header">
@@ -249,6 +221,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
         </div>
       </div>
 
+      {/* 4. Donuts and Sensors Panel */}
       <div className="cc-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
         <div className="cc-card" style={{ alignItems: 'center' }}>
           <div className="cc-card-header" style={{ width: '100%', marginBottom: '1rem' }}>
@@ -296,7 +269,9 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
         </div>
       </div>
 
+      {/* 5. Bottom Panels: Event Log, Tasks, Quick Actions */}
       <div className="cc-bottom-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+        
         <div className="cc-card panel-card" style={{ maxHeight: '300px', overflowY: 'auto' }}>
           <div className="panel-header">
             <h4>EVENT LOG (PROBLEMS & RECOVERIES)</h4>
@@ -345,221 +320,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
             <button className="cc-btn" onClick={() => handleQuickAction('rescan_pci')}>RESCAN PCI BUS</button>
           </div>
         </div>
-      </div>
 
-      {statusMsg && (
-        <div style={{ position: 'fixed', bottom: '20px', right: '20px', background: 'rgba(0, 229, 255, 0.2)', backdropFilter: 'blur(10px)', border: '1px solid #00e5ff', color: '#fff', padding: '1rem', borderRadius: '8px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
-          {statusMsg}
-        </div>
-      )}
-    </div>
-  );
-
-}function DiagnosticsView({ vitals }: { vitals: SystemVitals | null }) {
-  if (!vitals) return <p>Loading diagnostics...</p>;
-
-  const issues = [];
-  if (vitals.cpu_usage > 90) issues.push({ severity: 'critical', msg: `CPU Usage is critically high (${vitals.cpu_usage.toFixed(1)}%)` });
-  else if (vitals.cpu_usage > 75) issues.push({ severity: 'warning', msg: `CPU Usage is high (${vitals.cpu_usage.toFixed(1)}%)` });
-
-  const ramPercent = (vitals.ram_used / vitals.ram_total) * 100;
-  if (ramPercent > 95) issues.push({ severity: 'critical', msg: `RAM is almost fully exhausted (${ramPercent.toFixed(1)}%)` });
-  else if (ramPercent > 85) issues.push({ severity: 'warning', msg: `RAM usage is high (${ramPercent.toFixed(1)}%)` });
-
-  vitals.sensors.forEach(s => {
-    if (s.temperature > 85) issues.push({ severity: 'critical', msg: `Thermal anomaly: ${s.label} is overheating (${s.temperature}°C)` });
-    else if (s.temperature > 75) issues.push({ severity: 'warning', msg: `Thermal warning: ${s.label} is running hot (${s.temperature}°C)` });
-  });
-
-  return (
-    <div className="diagnostics-view">
-      <div className="diag-header">
-        <Stethoscope size={32} className="diag-icon" />
-        <div>
-          <h2>System Diagnostics Engine</h2>
-          <p>Real-time analysis of hardware evidence</p>
-        </div>
-      </div>
-      
-      <div className="issues-list">
-        {issues.length === 0 ? (
-          <div className="issue-card healthy">
-            <CheckCircle2 size={24} />
-            <div className="issue-text">
-              <h3>System Healthy</h3>
-              <p>No anomalies detected in CPU, Memory, or Thermals.</p>
-            </div>
-          </div>
-        ) : (
-          issues.map((issue, i) => (
-            <div key={i} className={`issue-card ${issue.severity}`}>
-              <AlertTriangle size={24} />
-              <div className="issue-text">
-                <h3>{issue.severity === 'critical' ? 'Critical Anomaly' : 'Warning'}</h3>
-                <p>{issue.msg}</p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SystemInfoView({ vitals }: { vitals: SystemVitals | null }) {
-  if (!vitals) return <p>Loading...</p>;
-  const info = vitals.sys_info;
-
-  return (
-    <div className="sysinfo-view">
-      <div className="sysinfo-grid">
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <Info className="panel-icon" />
-            <h2>Operating System</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Host Name</span><span className="prop-value">{info.host_name}</span></div>
-            <div className="sys-prop"><span className="prop-label">OS</span><span className="prop-value">{info.long_os_version}</span></div>
-            <div className="sys-prop"><span className="prop-label">Distribution</span><span className="prop-value">{info.distribution_id || 'Unavailable'}</span></div>
-            <div className="sys-prop"><span className="prop-label">Kernel</span><span className="prop-value">{info.kernel_version}</span></div>
-          </div>
-        </div>
-
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <Cpu className="panel-icon" />
-            <h2>Processor</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Model</span><span className="prop-value gpu-text">{info.cpu_brand}</span></div>
-            <div className="sys-prop"><span className="prop-label">Vendor ID</span><span className="prop-value">{info.cpu_vendor}</span></div>
-            <div className="sys-prop"><span className="prop-label">Architecture</span><span className="prop-value">{info.cpu_arch || 'Unavailable'}</span></div>
-            <div className="sys-prop"><span className="prop-label">Physical Cores</span><span className="prop-value">{info.cpu_cores === 0 ? 'Unavailable' : info.cpu_cores}</span></div>
-            <div className="sys-prop"><span className="prop-label">Logical Threads</span><span className="prop-value">{info.cpu_logical_cores}</span></div>
-            <div className="sys-prop"><span className="prop-label">Base Clock</span><span className="prop-value">{info.cpu_frequency === 0 ? 'Unavailable' : `${info.cpu_frequency} MHz`}</span></div>
-          </div>
-        </div>
-
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <MemoryStick className="panel-icon" />
-            <h2>Memory subsystem</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">Total RAM</span><span className="prop-value">{formatBytes(info.ram_total)}</span></div>
-            <div className="sys-prop"><span className="prop-label">Total Swap</span><span className="prop-value">{formatBytes(info.swap_total)}</span></div>
-          </div>
-        </div>
-
-        <div className="panel sys-panel">
-          <div className="panel-header">
-            <Square className="panel-icon" />
-            <h2>Graphics Processor</h2>
-          </div>
-          <div className="sys-props">
-            <div className="sys-prop"><span className="prop-label">GPU Model</span><span className="prop-value gpu-text">{info.gpu_name}</span></div>
-            <div className="sys-prop"><span className="prop-label">VRAM</span><span className="prop-value">{info.vram}</span></div>
-          </div>
-        </div>
-        
-        <div className="panel sys-panel" style={{ gridColumn: 'span 2' }}>
-          <div className="panel-header">
-            <Network className="panel-icon" />
-            <h2>Network Adapters (MAC Addresses)</h2>
-          </div>
-          <div className="sys-props" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            {info.mac_addresses.map((mac, i) => (
-              <div key={i} className="sys-prop" style={{ marginBottom: 0 }}>
-                <span className="prop-label">Adapter {i+1}</span>
-                <span className="prop-value">{mac}</span>
-              </div>
-            ))}
-            {info.mac_addresses.length === 0 && (
-              <div className="sys-prop"><span className="prop-label">Adapters</span><span className="prop-value">Unavailable</span></div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-function TaskManagerView({ vitals }: { vitals: SystemVitals | null }) {
-  const [statusMsg, setStatusMsg] = useState<string | null>(null);
-
-  if (!vitals) return <div className="loading" style={{padding: '2rem'}}>Initializing Task Manager...</div>;
-
-  const showStatus = (msg: string) => {
-    setStatusMsg(msg);
-    setTimeout(() => setStatusMsg(null), 3000);
-  };
-
-  const handleKill = async (pid: number) => {
-    try {
-      const result: string = await invoke("kill_process", { pid });
-      showStatus(result);
-    } catch (e: any) {
-      showStatus("Error: " + e);
-    }
-  };
-
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  // Filter out the app's own processes so the user doesn't kill the UI
-  const safeProcesses = vitals.processes.filter(p => !p.name.toLowerCase().includes('webkit') && !p.name.toLowerCase().includes('cvm'));
-
-  const sortedProcesses = safeProcesses.sort((a, b) => {
-    const aName = a.name.toLowerCase();
-    const bName = b.name.toLowerCase();
-    const apps = ['brave', 'chrome', 'firefox', 'gnome', 'code', 'spotify', 'slack', 'discord', 'terminal', 'nautilus', 'vlc'];
-    const aIsApp = apps.some(app => aName.includes(app)) ? 0 : 1;
-    const bIsApp = apps.some(app => bName.includes(app)) ? 0 : 1;
-    if (aIsApp !== bIsApp) return aIsApp - bIsApp;
-    return aName.localeCompare(bName) || a.pid - b.pid;
-  });
-
-  return (
-    <div className="system-info" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="cc-header" style={{ marginBottom: '1rem' }}>
-        <div className="cc-identity">
-          <h3>Task Manager</h3>
-          <span className="cc-os">{sortedProcesses.length} Background Processes & Apps</span>
-        </div>
-      </div>
-      
-      <div className="process-list-container" style={{ flexGrow: 1, overflowY: 'auto', background: 'var(--bg-panel)', borderRadius: '12px', padding: '1rem' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)' }}>
-              <th style={{ padding: '0.5rem' }}>Process Name</th>
-              <th style={{ padding: '0.5rem' }}>PID</th>
-              <th style={{ padding: '0.5rem' }}>CPU Usage</th>
-              <th style={{ padding: '0.5rem' }}>Memory</th>
-              <th style={{ padding: '0.5rem' }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedProcesses.map(p => (
-              <tr key={p.pid} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <td style={{ padding: '0.75rem 0.5rem', fontWeight: 'bold' }}>{p.name}</td>
-                <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-muted)' }}>{p.pid}</td>
-                <td style={{ padding: '0.75rem 0.5rem', color: '#00e5ff' }}>{p.cpu_usage.toFixed(1)}%</td>
-                <td style={{ padding: '0.75rem 0.5rem', color: '#3b82f6' }}>{formatBytes(p.memory_usage)}</td>
-                <td style={{ padding: '0.75rem 0.5rem' }}>
-                  <button onClick={() => handleKill(p.pid)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>END</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
 
       {statusMsg && (
@@ -570,99 +331,10 @@ function TaskManagerView({ vitals }: { vitals: SystemVitals | null }) {
     </div>
   );
 }
+"""
 
+content = content[:dash_start] + dashboard_code + content[dash_end:]
 
-function App() {
-  const [vitals, setVitals] = useState<SystemVitals | null>(null);
-  const [history, setHistory] = useState<SystemVitals[]>([]);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "diagnostics" | "system" | "tasks">("dashboard");
+with open("src/App.tsx", "w") as f:
+    f.write(content)
 
-  useEffect(() => {
-    let isSubscribed = true;
-
-    const fetchVitals = async () => {
-      try {
-        const data: SystemVitals = await invoke("get_system_vitals");
-        if (!isSubscribed) return;
-        
-        setVitals(data);
-        
-        setHistory(prev => {
-          const newHistory = [...prev, data];
-          return newHistory.length > 30 ? newHistory.slice(newHistory.length - 30) : newHistory;
-        });
-      } catch (err) {
-        console.error("Failed to fetch vitals:", err);
-      }
-    };
-
-    fetchVitals();
-    const interval = setInterval(fetchVitals, 1000);
-
-    return () => {
-      isSubscribed = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  const appWindow = getCurrentWindow();
-
-  return (
-    <div className="app-layout">
-      <aside className="sidebar" data-tauri-drag-region>
-        <div className="brand" data-tauri-drag-region>
-          <Activity className="brand-icon" />
-          <h1 data-tauri-drag-region>C V M</h1>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <LayoutDashboard size={18} /> <span className="nav-text">Dashboard</span>
-          </button>
-          <button className={`nav-item ${activeTab === 'diagnostics' ? 'active' : ''}`} onClick={() => setActiveTab('diagnostics')}>
-            <Stethoscope size={18} /> <span className="nav-text">Diagnostics</span>
-          </button>
-          <button className={`nav-item ${activeTab === 'system' ? 'active' : ''}`} onClick={() => setActiveTab('system')}>
-            <Info size={18} /> <span className="nav-text">System Info</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="status-badge">
-            <span className="status-dot"></span>
-            LIVE
-          </div>
-        </div>
-      </aside>
-
-      <main className="main-content">
-        <header className="top-bar" data-tauri-drag-region>
-          <h2 className="page-title" data-tauri-drag-region>
-            {activeTab === 'dashboard' ? 'Overview' : activeTab === 'diagnostics' ? 'Diagnostics Engine' : 'System Identity'}
-          </h2>
-          
-          <div className="window-controls">
-            <button className="control-btn" onClick={() => appWindow.minimize()} title="Minimize">
-              <Minus size={18} />
-            </button>
-            <button className="control-btn" onClick={() => appWindow.toggleMaximize()} title="Maximize">
-              <Square size={14} />
-            </button>
-            <button className="control-btn close-btn" onClick={() => appWindow.close()} title="Close">
-              <X size={18} />
-            </button>
-          </div>
-        </header>
-
-        <div className="tab-content">
-          {activeTab === 'dashboard' && <DashboardGrid vitals={vitals} history={history} setActiveTab={setActiveTab} />}
-          {activeTab === 'diagnostics' && <DiagnosticsView vitals={vitals} />}
-          {activeTab === 'system' && <SystemInfoView vitals={vitals} />}
-        {activeTab === 'tasks' && <TaskManagerView vitals={vitals} />}
-        </div>
-      </main>
-    </div>
-  );
-}
-
-export default App;
