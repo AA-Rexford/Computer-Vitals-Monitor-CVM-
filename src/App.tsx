@@ -1,4 +1,5 @@
 // @ts-nocheck
+
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -61,6 +62,7 @@ interface SystemVitals {
 
 
 function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals | null, history: SystemVitals[], setActiveTab: (tab: string) => void }) {
+  const [isMonitoring, setIsMonitoring] = useState(true);
   
   if (!vitals) {
     return <div style={{ color: '#00e5ff', padding: '2rem' }}>INITIALIZING MONITORING ENGINE... FETCHING TELEMETRY...</div>;
@@ -85,6 +87,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
   const totalWrite = vitals.disk_write;
   const netRx = vitals.networks.reduce((acc, n) => acc + n.rx_bytes, 0);
   const netTx = vitals.networks.reduce((acc, n) => acc + n.tx_bytes, 0);
+  const battery = vitals.battery || { present: false, percent: 0, charging: false, power_source: 'AC Power', status: 'N/A' };
 
 
   return (
@@ -173,19 +176,19 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
 
         {/* BATTERY / POWER - REAL DATA */}
         <div className="cc-card" style={{ border: '1px solid #a855f7', background: 'rgba(168, 85, 247, 0.05)' }}>
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#a855f7'}}>⚡ POWER</span><span className="cc-value">{vitals.battery.present ? `${vitals.battery.percent.toFixed(0)}%` : 'AC'}</span></div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{vitals.battery.present ? `${vitals.battery.status} · ${vitals.battery.power_source}` : 'No battery · AC Power'}</div>
-          {vitals.battery.present ? (
+          <div className="cc-card-header"><span className="cc-title" style={{color: '#a855f7'}}>⚡ POWER</span><span className="cc-value">{battery.present ? `${battery.percent.toFixed(0)}%` : 'AC'}</span></div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{battery.present ? `${battery.status} · ${battery.power_source}` : 'No battery · AC Power'}</div>
+          {battery.present ? (
             <div style={{ marginTop: '0.75rem' }}>
               <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '6px', height: '28px', overflow: 'hidden', position: 'relative' }}>
-                <div style={{ height: '100%', width: `${vitals.battery.percent}%`, background: vitals.battery.charging ? 'linear-gradient(90deg, #10b981, #34d399)' : vitals.battery.percent < 20 ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #a855f7, #c084fc)', borderRadius: '6px', transition: 'width 0.5s ease' }} />
+                <div style={{ height: '100%', width: `${battery.percent}%`, background: battery.charging ? 'linear-gradient(90deg, #10b981, #34d399)' : battery.percent < 20 ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #a855f7, #c084fc)', borderRadius: '6px', transition: 'width 0.5s ease' }} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', color: '#fff' }}>
-                  {vitals.battery.charging ? `⚡ Charging ${vitals.battery.percent.toFixed(0)}%` : `${vitals.battery.percent.toFixed(0)}%`}
+                  {battery.charging ? `⚡ Charging ${battery.percent.toFixed(0)}%` : `${battery.percent.toFixed(0)}%`}
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                <span>Source: {vitals.battery.power_source}</span>
-                <span>Status: {vitals.battery.status}</span>
+                <span>Source: {battery.power_source}</span>
+                <span>Status: {battery.status}</span>
               </div>
             </div>
           ) : (
