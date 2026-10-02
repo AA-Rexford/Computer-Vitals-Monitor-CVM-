@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Wifi, SquareTerminal, HelpCircle, Bell, Server, Radar, Wrench, FileText, LineChart, ScrollText, MonitorSmartphone, Database, Settings, Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus, Square, Thermometer, LayoutDashboard, Stethoscope, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Wifi, Monitor, SquareTerminal, HelpCircle, Bell, Server, Radar, Wrench, FileText, LineChart, ScrollText, MonitorSmartphone, Database, Settings, Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus, Square, Thermometer, LayoutDashboard, Stethoscope, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { AreaChart, Area, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import "./App.css";
 
@@ -3057,7 +3057,10 @@ function App() {
           <div className="top-brand" data-tauri-drag-region>
             {activeTab === 'home' ? (
               <div className="app-icon-brand" data-tauri-drag-region>
-                <Activity size={24} style={{ color: '#00e5ff' }} />
+                <div style={{ position: 'relative', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Monitor size={28} style={{ position: 'absolute', color: '#00e5ff' }} />
+                  <Activity size={14} style={{ position: 'absolute', color: '#00e5ff', top: '5px' }} />
+                </div>
                 <h1 style={{ margin: 0, fontSize: '1.2rem', letterSpacing: '2px', fontWeight: 900, color: '#fff' }}>CVM</h1>
               </div>
             ) : (
