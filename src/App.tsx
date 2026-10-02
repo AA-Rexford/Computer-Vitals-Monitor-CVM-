@@ -157,7 +157,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
         </div>
 
         {/* STORAGE I/O */}
-        <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #10b981', background: 'rgba(16, 185, 129, 0.05)' }} onClick={() => setActiveTab('storage')}>
+        <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #10b981', background: 'rgba(16, 185, 129, 0.05)' }} onClick={() => setActiveTab('hardware')}>
           <div className="cc-card-header"><span className="cc-title" style={{color: '#10b981'}}><HardDrive size={14}/> STORAGE I/O</span><span className="cc-value">LIVE</span></div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>R: {formatBytes(totalRead)}/s | W: {formatBytes(totalWrite)}/s</div>
           <div className="cc-graph-mini" style={{ height: '60px' }}>
@@ -184,17 +184,24 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
         </div>
 
         {/* BATTERY / POWER */}
-        <div className="cc-card" style={{ border: '1px solid #64748b', background: 'rgba(100, 116, 139, 0.05)' }}>
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#64748b'}}><Activity size={14}/> POWER</span><span className="cc-value">AC LINE</span></div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No battery detected (Desktop)</div>
-          <div className="cc-graph-mini" style={{ height: '60px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '10px' }}>
-             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>120V CONSTANT</span>
-          </div>
-        </div>
+        {(() => {
+          const batSensor = vitals.sensors.find(s => s.label.toLowerCase().includes('bat'));
+          const hasBattery = !!batSensor;
+          const batTemp = batSensor?.temperature || 0;
+          return (
+            <div className="cc-card" style={{ border: '1px solid #a855f7', background: 'rgba(168, 85, 247, 0.05)' }}>
+              <div className="cc-card-header"><span className="cc-title" style={{color: '#a855f7'}}>⚡ POWER</span><span className="cc-value">{hasBattery ? `${batTemp > 0 ? batTemp.toFixed(0) + '°C' : 'ON BAT'}` : 'AC'}</span></div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{hasBattery ? 'Battery detected' : 'AC Power (No battery)'}</div>
+              <div className="cc-graph-mini" style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: hasBattery ? '#a855f7' : '#64748b', fontFamily: 'monospace' }}>{hasBattery ? 'BATTERY ACTIVE' : 'MAINS POWER'}</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* SYSTEM LOAD */}
         <div className="cc-card" style={{ border: '1px solid #f472b6', background: 'rgba(244, 114, 182, 0.05)' }}>
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#f472b6'}}><Activity size={14}/> SYS LOAD</span><span className="cc-value">{(vitals.cpu_usage / 100 * 4).toFixed(2)}</span></div>
+          <div className="cc-card-header"><span className="cc-title" style={{color: '#f472b6'}}><Server size={14}/> SYS LOAD</span><span className="cc-value">{(vitals.cpu_usage / 100 * 4).toFixed(2)}</span></div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uptime: {Math.floor(vitals.uptime / 3600)}h {Math.floor((vitals.uptime % 3600)/60)}m</div>
           <div className="cc-graph-mini" style={{ height: '60px' }}>
             <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: (h.cpu_usage / 100 * 4) }))}><Area type="monotone" dataKey="val" stroke="#f472b6" fill="#f472b6" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
@@ -271,7 +278,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
           <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '1.5rem' }}>
             <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '1rem' }}>Quick Controls</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <button className="cc-btn" style={{ background: 'rgba(0, 229, 255, 0.2)', border: '1px solid #00e5ff', color: '#00e5ff' }} onClick={() => setActiveTab('diagnostics')}>RUN DIAGNOSTIC</button>
+              <button className="cc-btn" style={{ background: 'rgba(0, 229, 255, 0.2)', border: '1px solid #00e5ff', color: '#00e5ff' }} onClick={() => setActiveTab('reports')}>RUN DIAGNOSTIC</button>
               <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setIsMonitoring(!isMonitoring)}>{isMonitoring ? 'PAUSE MON' : 'RESUME MON'}</button>
               <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setActiveTab('hardware')}>HARDWARE</button>
               <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setActiveTab('tasks')}>SOFTWARE</button>
@@ -3435,20 +3442,20 @@ function HelpView() {
 
 function HomeGrid({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
   const boxes = [
-    { id: 'dashboard', name: 'DASHBOARD', icon: <LayoutDashboard size={64} /> },
-    { id: 'hardware', name: 'HARDWARE', icon: <Cpu size={64} /> },
-    { id: 'tasks', name: 'SOFTWARE', icon: <SquareTerminal size={64} /> },
-    { id: 'network', name: 'NETWORK', icon: <Wifi size={64} /> },
-    { id: 'devices', name: 'DEVICES', icon: <MonitorSmartphone size={64} /> },
-    { id: 'reports', name: 'REPORTS', icon: <FileText size={64} /> },
+    { id: 'dashboard', name: 'DASHBOARD', icon: <LayoutDashboard /> },
+    { id: 'hardware', name: 'HARDWARE', icon: <Cpu /> },
+    { id: 'tasks', name: 'SOFTWARE', icon: <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Monitor /><Activity style={{ position: 'absolute', width: '45%', height: '45%', top: '18%' }} /></div> },
+    { id: 'network', name: 'NETWORK', icon: <Wifi /> },
+    { id: 'devices', name: 'DEVICES', icon: <MonitorSmartphone /> },
+    { id: 'reports', name: 'REPORTS', icon: <FileText /> },
   ];
 
   return (
     <div className="home-grid-container">
       {boxes.map(box => (
         <div key={box.id} className="home-box" onClick={() => setActiveTab(box.id)}>
-          <div className="home-box-icon">{box.icon}</div>
-          <div className="home-box-name">{box.name}</div>
+          {box.icon}
+          <h2>{box.name}</h2>
         </div>
       ))}
     </div>
@@ -3528,22 +3535,22 @@ function App() {
         <div className="tab-content">
           {activeTab === 'home' && <HomeGrid setActiveTab={setActiveTab} />}
           {activeTab === 'dashboard' && <DashboardGrid vitals={vitals} history={history} setActiveTab={setActiveTab} />}
-          {activeTab === 'system' && <SystemInfoView vitals={vitals} />}
+          
         {activeTab === 'hardware' && <HardwareView vitals={vitals} history={history} />}
-        {activeTab === 'services' && <ServicesView />}
-        {activeTab === 'storage' && <StorageView vitals={vitals} history={history} />}
+        
+        
         {activeTab === 'network' && <NetworkView vitals={vitals} history={history} />}
         {activeTab === 'devices' && <DevicesView />}
-        {activeTab === 'logs' && <LogsView />}
-        {activeTab === 'incidents' && <IncidentsView />}
-        {activeTab === 'history' && <HistoryView history={history} />}
-        {activeTab === 'reports' && <ReportsView />}
-        {activeTab === 'actions' && <ActionsView />}
-        {activeTab === 'discovery' && <DiscoveryView />}
-        {activeTab === 'fleet' && <FleetView />}
-        {activeTab === 'notifications' && <NotificationsView />}
-        {activeTab === 'settings' && <SettingsView />}
-        {activeTab === 'help' && <HelpView />}
+        
+        
+        
+        {activeTab === 'reports' && <ReportsView history={history} vitals={vitals} />}
+        
+        
+        
+        
+        
+        
         {activeTab === 'tasks' && <SoftwareView vitals={vitals} />}
         </div>
       </main>

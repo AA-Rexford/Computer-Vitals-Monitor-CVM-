@@ -837,11 +837,22 @@ body {
   width: 100%;
   text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.6);
 }
-.home-box svg {
+.home-box > svg,
+.home-box > div > svg {
   width: clamp(50px, 8vw, 90px);
   height: clamp(50px, 8vw, 90px);
   color: #00ffff;
   margin-bottom: clamp(0.5rem, 2vw, 1.5rem);
   filter: drop-shadow(0 0 15px rgba(0, 255, 255, 1)) drop-shadow(0 0 30px rgba(0, 255, 255, 0.6));
+}
+.home-box > div {
+  width: clamp(50px, 8vw, 90px);
+  height: clamp(50px, 8vw, 90px);
+  margin-bottom: clamp(0.5rem, 2vw, 1.5rem);
+  color: #00ffff;
+  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 1)) drop-shadow(0 0 30px rgba(0, 255, 255, 0.6));
+}
+.home-box > div > svg {
+  margin-bottom: 0;
 }
 
