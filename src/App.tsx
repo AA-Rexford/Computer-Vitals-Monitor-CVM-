@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { SquareTerminal, HelpCircle, Bell, Server, Radar, Wrench, FileText, LineChart, ScrollText, MonitorSmartphone, Database, Settings, Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus, Square, Thermometer, LayoutDashboard, Stethoscope, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Wifi, SquareTerminal, HelpCircle, Bell, Server, Radar, Wrench, FileText, LineChart, ScrollText, MonitorSmartphone, Database, Settings, Activity, Cpu, HardDrive, Network, MemoryStick, X, Minus, Square, Thermometer, LayoutDashboard, Stethoscope, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { AreaChart, Area, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import "./App.css";
 
