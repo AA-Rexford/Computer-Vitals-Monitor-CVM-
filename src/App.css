@@ -14,6 +14,104 @@
   background-color: transparent;
 }
 
+
+/* GLOBAL POLISH */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 229, 255, 0.3) transparent;
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.3); border-radius: 3px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.5); }
+
+.cc-card {
+  background: var(--bg-panel);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: all 0.25s ease;
+  border: 1px solid var(--border-subtle);
+}
+.cc-card:hover {
+  border-color: rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.1);
+}
+.cc-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.cc-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.cc-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+}
+.cc-graph-mini {
+  margin-top: 0.5rem;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cc-btn {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+.cc-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+}
+.cc-btn:active {
+  transform: translateY(0);
+}
+
+/* Tab content smooth entry */
+.tab-content > * {
+  animation: fadeSlideIn 0.2s ease-out;
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Info table polish */
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.info-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.info-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.info-val {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

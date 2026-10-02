@@ -61,7 +61,6 @@ interface SystemVitals {
 
 function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals | null, history: SystemVitals[], setActiveTab: (tab: string) => void }) {
   const [isMonitoring, setIsMonitoring] = useState(true);
-  const [graphTime, setGraphTime] = useState('Live');
   const [activeGraph, setActiveGraph] = useState('CPU');
   
   if (!vitals) {
@@ -88,7 +87,6 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
   const netRx = vitals.networks.reduce((acc, n) => acc + n.rx_bytes, 0);
   const netTx = vitals.networks.reduce((acc, n) => acc + n.tx_bytes, 0);
 
-  const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour12: false });
 
   return (
     <div className="command-center" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingRight: '1rem', height: '100%', overflowY: 'auto' }}>
@@ -98,7 +96,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Host Identity</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#00e5ff' }}>CVM-WORKSTATION</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#00e5ff' }}>{vitals.sys_info.host_name || 'UNKNOWN'}</div>
           </div>
           <div style={{ paddingLeft: '1.5rem', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Live Health</div>
@@ -110,7 +108,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
           </div>
           <div style={{ paddingLeft: '1.5rem', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Power State</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#3b82f6' }}>AC LINE DETECTED</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#3b82f6' }}>{vitals.sensors.find(s => s.label.toLowerCase().includes('bat')) ? 'BATTERY' : 'AC POWER'}</div>
           </div>
         </div>
         
@@ -120,30 +118,30 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
             <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: isMonitoring ? '#10b981' : '#f59e0b' }}>{isMonitoring ? 'ACTIVE (1s)' : 'PAUSED'}</div>
           </div>
           <div style={{ textAlign: 'right', paddingLeft: '1.5rem', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>System Time</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', fontFamily: 'monospace' }}>{formatTime(new Date())}</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Uptime</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', fontFamily: 'monospace', color: '#00e5ff' }}>{Math.floor(vitals.uptime / 86400)}d {Math.floor((vitals.uptime % 86400) / 3600)}h {Math.floor((vitals.uptime % 3600) / 60)}m</div>
           </div>
         </div>
       </div>
 
       {/* 2. LIVE HARDWARE METRIC GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
         
         {/* CPU */}
         <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #3b82f6', background: 'rgba(59, 130, 246, 0.05)' }} onClick={() => setActiveTab('hardware')}>
           <div className="cc-card-header"><span className="cc-title" style={{color: '#3b82f6'}}><Cpu size={14}/> CPU</span><span className="cc-value">{vitals.cpu_usage.toFixed(1)}%</span></div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Temp: {cpuTemp.toFixed(1)}°C | Load: Normal</div>
           <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.cpu_usage }))}><Area type="monotone" dataKey="val" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.cpu_usage }))}><Area type="basis" dataKey="val" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
 
         {/* GPU */}
         <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.05)' }} onClick={() => setActiveTab('hardware')}>
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#8b5cf6'}}><MonitorSmartphone size={14}/> GPU</span><span className="cc-value">ACTIVE</span></div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Util: N/A | VRAM: N/A</div>
-          <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={[{val:5},{val:10},{val:8},{val:12}]}><Area type="monotone" dataKey="val" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+          <div className="cc-card-header"><span className="cc-title" style={{color: '#8b5cf6'}}><Monitor size={14}/> GPU</span><span className="cc-value">{vitals.sys_info.gpu_name ? 'ACTIVE' : 'N/A'}</span></div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{vitals.sys_info.gpu_name ? vitals.sys_info.gpu_name.substring(0, 35) : 'No dedicated GPU detected'}</div>
+          <div className="cc-graph-mini" style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: '#8b5cf6', fontFamily: 'monospace' }}>{vitals.sys_info.vram !== 'Unavailable' ? `VRAM: ${vitals.sys_info.vram}` : 'GPU TELEMETRY N/A'}</span>
           </div>
         </div>
 
@@ -152,7 +150,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
           <div className="cc-card-header"><span className="cc-title" style={{color: '#f59e0b'}}><MemoryStick size={14}/> MEMORY</span><span className="cc-value">{ramPercent.toFixed(1)}%</span></div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Used: {formatBytes(ramUsed)} / {formatBytes(ramTotal)}</div>
           <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.ram_used }))}><Area type="monotone" dataKey="val" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.ram_used }))}><Area type="basis" dataKey="val" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
 
@@ -161,7 +159,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
           <div className="cc-card-header"><span className="cc-title" style={{color: '#10b981'}}><HardDrive size={14}/> STORAGE I/O</span><span className="cc-value">LIVE</span></div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>R: {formatBytes(totalRead)}/s | W: {formatBytes(totalWrite)}/s</div>
           <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.disk_read + h.disk_write }))}><Area type="monotone" dataKey="val" stroke="#10b981" fill="#10b981" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.disk_read + h.disk_write }))}><Area type="basis" dataKey="val" stroke="#10b981" fill="#10b981" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
 
@@ -170,7 +168,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
           <div className="cc-card-header"><span className="cc-title" style={{color: '#00e5ff'}}><Network size={14}/> NETWORK</span><span className="cc-value">LIVE</span></div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Up: {formatBytes(netTx)}/s | Dn: {formatBytes(netRx)}/s</div>
           <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.networks.reduce((a, n) => a + n.rx_bytes, 0) }))}><Area type="monotone" dataKey="val" stroke="#00e5ff" fill="#00e5ff" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.networks.reduce((a, n) => a + n.rx_bytes, 0) }))}><Area type="basis" dataKey="val" stroke="#00e5ff" fill="#00e5ff" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
 
@@ -179,7 +177,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
           <div className="cc-card-header"><span className="cc-title" style={{color: '#ef4444'}}><Thermometer size={14}/> SENSORS</span><span className="cc-value">{vitals.sensors.length} ACTIVE</span></div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Highest: {Math.max(0, ...vitals.sensors.map(s => s.temperature)).toFixed(1)}°C</div>
           <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.sensors[0]?.temperature || 40 }))}><Area type="monotone" dataKey="val" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.sensors[0]?.temperature || 40 }))}><Area type="basis" dataKey="val" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
 
@@ -204,12 +202,12 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
           <div className="cc-card-header"><span className="cc-title" style={{color: '#f472b6'}}><Server size={14}/> SYS LOAD</span><span className="cc-value">{(vitals.cpu_usage / 100 * 4).toFixed(2)}</span></div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uptime: {Math.floor(vitals.uptime / 3600)}h {Math.floor((vitals.uptime % 3600)/60)}m</div>
           <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: (h.cpu_usage / 100 * 4) }))}><Area type="monotone" dataKey="val" stroke="#f472b6" fill="#f472b6" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: (h.cpu_usage / 100 * 4) }))}><Area type="basis" dataKey="val" stroke="#f472b6" fill="#f472b6" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
         
         {/* 3. LIVE GRAPH AREA */}
         <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
@@ -219,10 +217,8 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
                 <button key={g} onClick={() => setActiveGraph(g)} style={{ background: activeGraph === g ? 'rgba(0, 229, 255, 0.2)' : 'transparent', border: activeGraph === g ? '1px solid #00e5ff' : '1px solid rgba(255,255,255,0.1)', color: activeGraph === g ? '#00e5ff' : '#fff', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>{g}</button>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {['Live', '1m', '5m', '15m', '1h'].map(t => (
-                <button key={t} onClick={() => setGraphTime(t)} style={{ background: graphTime === t ? '#fff' : 'rgba(255,255,255,0.1)', color: graphTime === t ? '#000' : '#fff', border: 'none', padding: '0.3rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>{t}</button>
-              ))}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', color: '#10b981', fontFamily: 'monospace' }}>● LIVE ({history.length}s window)</span>
             </div>
           </div>
           
@@ -241,7 +237,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
                   </linearGradient>
                 </defs>
                 <YAxis hide />
-                <Area type="monotone" dataKey="val" stroke="#00e5ff" fill="url(#colorMain)" strokeWidth={2} isAnimationActive={false} />
+                <Area type="basis" dataKey="val" stroke="#00e5ff" fill="url(#colorMain)" strokeWidth={2} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -276,14 +272,10 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
 
           {/* 5. QUICK CONTROLS */}
           <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '1.5rem' }}>
-            <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '1rem' }}>Quick Controls</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <button className="cc-btn" style={{ background: 'rgba(0, 229, 255, 0.2)', border: '1px solid #00e5ff', color: '#00e5ff' }} onClick={() => setActiveTab('reports')}>RUN DIAGNOSTIC</button>
-              <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setIsMonitoring(!isMonitoring)}>{isMonitoring ? 'PAUSE MON' : 'RESUME MON'}</button>
-              <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setActiveTab('hardware')}>HARDWARE</button>
-              <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setActiveTab('tasks')}>SOFTWARE</button>
-              <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setActiveTab('network')}>NETWORK</button>
-              <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)' }} onClick={() => setActiveTab('reports')}>REPORTS</button>
+            <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '1rem' }}>Quick Actions</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button className="cc-btn" style={{ background: 'rgba(0, 229, 255, 0.15)', border: '1px solid rgba(0, 229, 255, 0.4)', color: '#00e5ff' }} onClick={() => setActiveTab('reports')}>⚡ RUN DIAGNOSTIC</button>
+              <button className="cc-btn" style={{ background: isMonitoring ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.15)', border: isMonitoring ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)', color: isMonitoring ? '#f59e0b' : '#10b981' }} onClick={() => setIsMonitoring(!isMonitoring)}>{isMonitoring ? '⏸ PAUSE MONITORING' : '▶ RESUME MONITORING'}</button>
             </div>
           </div>
         </div>
@@ -1179,8 +1171,8 @@ function StorageView({ vitals, history }: { vitals: SystemVitals | null, history
                   </linearGradient>
                 </defs>
                 <YAxis hide />
-                <Area type="monotone" dataKey="read" stroke="#00e5ff" fill="url(#colorDiskR)" strokeWidth={2} isAnimationActive={false} />
-                <Area type="monotone" dataKey="write" stroke="#f59e0b" fill="url(#colorDiskW)" strokeWidth={2} isAnimationActive={false} />
+                <Area type="basis" dataKey="read" stroke="#00e5ff" fill="url(#colorDiskR)" strokeWidth={2} isAnimationActive={false} />
+                <Area type="basis" dataKey="write" stroke="#f59e0b" fill="url(#colorDiskW)" strokeWidth={2} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -1343,8 +1335,8 @@ function NetworkView({ vitals, history }: { vitals: SystemVitals | null, history
                     <linearGradient id="colorTx" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00e5ff" stopOpacity={0.4}/><stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/></linearGradient>
                   </defs>
                   <YAxis hide />
-                  <Area type="monotone" dataKey="rx" stroke="#f59e0b" fill="url(#colorRx)" strokeWidth={2} isAnimationActive={false} />
-                  <Area type="monotone" dataKey="tx" stroke="#00e5ff" fill="url(#colorTx)" strokeWidth={2} isAnimationActive={false} />
+                  <Area type="basis" dataKey="rx" stroke="#f59e0b" fill="url(#colorRx)" strokeWidth={2} isAnimationActive={false} />
+                  <Area type="basis" dataKey="tx" stroke="#00e5ff" fill="url(#colorTx)" strokeWidth={2} isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -2148,14 +2140,14 @@ function HistoryView({ history }: { history: SystemVitals[] }) {
                 
                 {metricGroup === 'CPU & RAM' && (
                   <>
-                    <Area type="monotone" dataKey="cpu" stroke="#00e5ff" fill="url(#histColorA)" strokeWidth={2} name="CPU Usage (%)" />
-                    <Area type="monotone" dataKey="ram" stroke="#8b5cf6" fill="url(#histColorB)" strokeWidth={2} name="RAM Usage (%)" />
+                    <Area type="basis" dataKey="cpu" stroke="#00e5ff" fill="url(#histColorA)" strokeWidth={2} name="CPU Usage (%)" />
+                    <Area type="basis" dataKey="ram" stroke="#8b5cf6" fill="url(#histColorB)" strokeWidth={2} name="RAM Usage (%)" />
                   </>
                 )}
                 {metricGroup === 'GPU & Temperature' && (
                   <>
-                    <Area type="monotone" dataKey="gpu" stroke="#10b981" fillOpacity={0.2} fill="#10b981" strokeWidth={2} name="GPU Usage (%)" />
-                    <Area type="monotone" dataKey="temp" stroke="#ef4444" fillOpacity={0.2} fill="#ef4444" strokeWidth={2} name="Package Temp (°C)" />
+                    <Area type="basis" dataKey="gpu" stroke="#10b981" fillOpacity={0.2} fill="#10b981" strokeWidth={2} name="GPU Usage (%)" />
+                    <Area type="basis" dataKey="temp" stroke="#ef4444" fillOpacity={0.2} fill="#ef4444" strokeWidth={2} name="Package Temp (°C)" />
                   </>
                 )}
                 {metricGroup === 'Disk I/O & Storage Growth' && (
@@ -2165,12 +2157,12 @@ function HistoryView({ history }: { history: SystemVitals[] }) {
                 )}
                 {metricGroup.includes('Network') && (
                   <>
-                    <Area type="monotone" dataKey="netRx" stroke="#3b82f6" fillOpacity={0.2} fill="#3b82f6" strokeWidth={2} name="Download" />
-                    <Area type="monotone" dataKey="netTx" stroke="#ec4899" fillOpacity={0.2} fill="#ec4899" strokeWidth={2} name="Upload" />
+                    <Area type="basis" dataKey="netRx" stroke="#3b82f6" fillOpacity={0.2} fill="#3b82f6" strokeWidth={2} name="Download" />
+                    <Area type="basis" dataKey="netTx" stroke="#ec4899" fillOpacity={0.2} fill="#ec4899" strokeWidth={2} name="Upload" />
                   </>
                 )}
                 {(!metricGroup.includes('Network') && !metricGroup.includes('CPU') && !metricGroup.includes('GPU') && !metricGroup.includes('Disk')) && (
-                  <Area type="monotone" dataKey="latency" stroke="#00e5ff" fill="url(#histColorA)" strokeWidth={2} name="Active Metric" />
+                  <Area type="basis" dataKey="latency" stroke="#00e5ff" fill="url(#histColorA)" strokeWidth={2} name="Active Metric" />
                 )}
               </AreaChart>
             </ResponsiveContainer>
@@ -2325,7 +2317,7 @@ function ReportsView({ history, vitals }: { history: SystemVitals[], vitals: Sys
                 <AreaChart data={history.map(h => ({ val: h.cpu_usage }))}>
                   <defs><linearGradient id="histCpu" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
                   <YAxis stroke="rgba(255,255,255,0.2)" />
-                  <Area type="monotone" dataKey="val" stroke="#3b82f6" fill="url(#histCpu)" strokeWidth={2} isAnimationActive={false} />
+                  <Area type="basis" dataKey="val" stroke="#3b82f6" fill="url(#histCpu)" strokeWidth={2} isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
