@@ -3054,16 +3054,18 @@ function App() {
 
       <main className="main-content">
         <header className="top-bar" data-tauri-drag-region>
-          
-          {activeTab !== 'home' && (
-            <button className="cc-btn secondary" style={{ marginRight: '1rem' }} onClick={() => setActiveTab('home')}>
-              ← Back to Home
-            </button>
-          )}
-          <h2 className="page-title"
- data-tauri-drag-region>
-            {activeTab === 'dashboard' ? 'Overview' : activeTab === 'diagnostics' ? 'Diagnostics Engine' : 'System Identity'}
-          </h2>
+          <div className="top-brand" data-tauri-drag-region>
+            {activeTab === 'home' ? (
+              <div className="app-icon-brand" data-tauri-drag-region>
+                <Activity size={24} style={{ color: '#00e5ff' }} />
+                <h1 style={{ margin: 0, fontSize: '1.2rem', letterSpacing: '2px', fontWeight: 900, color: '#fff' }}>CVM</h1>
+              </div>
+            ) : (
+              <button className="back-to-home-btn" onClick={() => setActiveTab('home')}>
+                ← BACK TO HOME
+              </button>
+            )}
+          </div>
           
           <div className="window-controls">
             <button className="control-btn" onClick={() => appWindow.minimize()} title="Minimize">
