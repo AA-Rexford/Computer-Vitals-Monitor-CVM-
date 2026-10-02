@@ -2995,8 +2995,8 @@ function HomeGrid({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
   const boxes = [
     { id: 'dashboard', name: 'DASHBOARD', icon: <LayoutDashboard size={64} /> },
     { id: 'hardware', name: 'HARDWARE', icon: <Cpu size={64} /> },
-    { id: 'tasks', name: 'SOFTWARE', icon: <Activity size={64} /> },
-    { id: 'network', name: 'NETWORK', icon: <Network size={64} /> },
+    { id: 'tasks', name: 'SOFTWARE', icon: <SquareTerminal size={64} /> },
+    { id: 'network', name: 'NETWORK', icon: <Wifi size={64} /> },
     { id: 'devices', name: 'DEVICES', icon: <MonitorSmartphone size={64} /> },
     { id: 'reports', name: 'REPORTS', icon: <FileText size={64} /> },
   ];
@@ -3016,7 +3016,7 @@ function HomeGrid({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
 function App() {
   const [vitals, setVitals] = useState<SystemVitals | null>(null);
   const [history, setHistory] = useState<SystemVitals[]>([]);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "diagnostics" | "system" | "tasks" | "hardware" | "services" | "storage" | "network" | "devices" | "logs">("dashboard");
+  const [activeTab, setActiveTab] = useState<string>("home");
 
   useEffect(() => {
     let isSubscribed = true;
