@@ -441,7 +441,7 @@ function SoftwareView({ vitals }: { vitals: SystemVitals | null }) {
     { name: 'Intel Wi-Fi 6 AX200', device: 'Network Adapter', version: '22.150.0.3', provider: 'Intel', date: '2022-05-20', status: 'Failed', signed: 'Verified' }
   ];
 
-  const filteredProcesses = vitals.processes.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.pid.toString().includes(searchQuery));
+  const filteredProcesses = vitals.processes.filter(p => String(p.name).toLowerCase().includes(searchQuery.toLowerCase()) || p.pid.toString().includes(searchQuery));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingRight: '1rem', gap: '1rem' }}>
@@ -3544,7 +3544,7 @@ function App() {
         {activeTab === 'notifications' && <NotificationsView />}
         {activeTab === 'settings' && <SettingsView />}
         {activeTab === 'help' && <HelpView />}
-        {activeTab === 'tasks' && <TaskManagerView vitals={vitals} />}
+        {activeTab === 'tasks' && <SoftwareView vitals={vitals} />}
         </div>
       </main>
     </div>
