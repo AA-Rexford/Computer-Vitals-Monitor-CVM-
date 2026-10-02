@@ -127,7 +127,7 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
       </div>
 
       {/* LIVE METRIC CARDS - bigger graphs, no wasted space */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', flexGrow: 1 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
         
         {/* CPU */}
         <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #3b82f6', background: 'rgba(59, 130, 246, 0.05)' }} onClick={() => setActiveTab('hardware')}>
@@ -868,7 +868,7 @@ function ServicesView() {
         </div>
       </div>
       
-      <div style={{ display: 'flex', gap: '1rem', flexGrow: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', gap: '1.5rem', overflow: 'hidden' }}>
         
         {/* Services List (Left) */}
         <div className="process-list-container" style={{ flexGrow: 1, overflowY: 'auto', background: 'var(--bg-panel)', borderRadius: '12px', padding: '1rem' }}>
@@ -1639,7 +1639,7 @@ function LogsView() {
         </div>
       </div>
       
-      <div style={{ display: 'flex', gap: '1rem', flexGrow: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', gap: '1.5rem', overflow: 'hidden' }}>
         
         {/* Logs Table (Left) */}
         <div className="process-list-container" style={{ flexGrow: 1, overflowY: 'auto', background: 'var(--bg-panel)', borderRadius: '12px', padding: '1rem' }}>
@@ -1835,7 +1835,7 @@ function IncidentsView() {
         </div>
       </div>
       
-      <div style={{ display: 'flex', gap: '1rem', flexGrow: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', gap: '1.5rem', overflow: 'hidden' }}>
         
         {/* Incidents Table (Left) */}
         <div className="process-list-container" style={{ flexGrow: 1, overflowY: 'auto', background: 'var(--bg-panel)', borderRadius: '12px', padding: '1rem' }}>
