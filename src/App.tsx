@@ -2990,6 +2990,29 @@ function HelpView() {
   );
 }
 
+
+function HomeGrid({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
+  const boxes = [
+    { id: 'dashboard', name: 'DASHBOARD', icon: <LayoutDashboard size={64} /> },
+    { id: 'hardware', name: 'HARDWARE', icon: <Cpu size={64} /> },
+    { id: 'tasks', name: 'SOFTWARE', icon: <Activity size={64} /> },
+    { id: 'network', name: 'NETWORK', icon: <Network size={64} /> },
+    { id: 'devices', name: 'DEVICES', icon: <MonitorSmartphone size={64} /> },
+    { id: 'reports', name: 'REPORTS', icon: <FileText size={64} /> },
+  ];
+
+  return (
+    <div className="home-grid-container">
+      {boxes.map(box => (
+        <div key={box.id} className="home-box" onClick={() => setActiveTab(box.id)}>
+          <div className="home-box-icon">{box.icon}</div>
+          <div className="home-box-name">{box.name}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function App() {
   const [vitals, setVitals] = useState<SystemVitals | null>(null);
   const [history, setHistory] = useState<SystemVitals[]>([]);
@@ -3027,83 +3050,18 @@ function App() {
 
   return (
     <div className="app-layout">
-      <aside className="sidebar" data-tauri-drag-region>
-        <div className="brand" data-tauri-drag-region>
-          <Activity className="brand-icon" />
-          <h1 data-tauri-drag-region>C V M</h1>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-            <LayoutDashboard size={18} /> <span className="nav-text">Dashboard</span>
-          </button>
-          <button className={`nav-item ${activeTab === 'hardware' ? 'active' : ''}`} onClick={() => setActiveTab('hardware')}>
-            <Cpu size={18} /> <span className="nav-text">Hardware</span>
-          </button>
-          <button className={`nav-item ${activeTab === 'tasks' ? 'active' : ''}`} onClick={() => setActiveTab('tasks')}>
-            <Activity size={18} /> <span className="nav-text">Processes</span>
-          </button>
-          <button className={`nav-item ${activeTab === "services" ? "active" : ""}`} onClick={() => setActiveTab("services")}>
-            <Settings size={18} /> <span className="nav-text">Services</span>
-          </button>
-          <button className={`nav-item ${activeTab === "storage" ? "active" : ""}`} onClick={() => setActiveTab("storage")}>
-            <Database size={18} /> <span className="nav-text">Storage</span>
-          </button>
-          <button className={`nav-item ${activeTab === "network" ? "active" : ""}`} onClick={() => setActiveTab("network")}>
-            <Network size={18} /> <span className="nav-text">Network</span>
-          </button>
-          <button className={`nav-item ${activeTab === "devices" ? "active" : ""}`} onClick={() => setActiveTab("devices")}>
-            <MonitorSmartphone size={18} /> <span className="nav-text">Devices</span>
-          </button>
-          <button className={`nav-item ${activeTab === "logs" ? "active" : ""}`} onClick={() => setActiveTab("logs")}>
-            <ScrollText size={18} /> <span className="nav-text">Logs</span>
-          </button>
-          <button className={`nav-item ${activeTab === "incidents" ? "active" : ""}`} onClick={() => setActiveTab("incidents")}>
-            <AlertTriangle size={18} /> <span className="nav-text">Incidents</span>
-          </button>
-          <button className={`nav-item ${activeTab === "history" ? "active" : ""}`} onClick={() => setActiveTab("history")}>
-            <LineChart size={18} /> <span className="nav-text">History</span>
-          </button>
-          <button className={`nav-item ${activeTab === "reports" ? "active" : ""}`} onClick={() => setActiveTab("reports")}>
-            <FileText size={18} /> <span className="nav-text">Reports</span>
-          </button>
-          <button className={`nav-item ${activeTab === "actions" ? "active" : ""}`} onClick={() => setActiveTab("actions")}>
-            <Wrench size={18} /> <span className="nav-text">Actions</span>
-          </button>
-          <button className={`nav-item ${activeTab === "discovery" ? "active" : ""}`} onClick={() => setActiveTab("discovery")}>
-            <Radar size={18} /> <span className="nav-text">Discovery</span>
-          </button>
-          <button className={`nav-item ${activeTab === "fleet" ? "active" : ""}`} onClick={() => setActiveTab("fleet")}>
-            <Server size={18} /> <span className="nav-text">Fleet</span>
-          </button>
-          <button className={`nav-item ${activeTab === "notifications" ? "active" : ""}`} onClick={() => setActiveTab("notifications")}>
-            <Bell size={18} /> <span className="nav-text">Notifications</span>
-          </button>
-          <button className={`nav-item ${activeTab === "settings" ? "active" : ""}`} onClick={() => setActiveTab("settings")}>
-            <Settings size={18} /> <span className="nav-text">Settings</span>
-          </button>
-          <button className={`nav-item ${activeTab === "help" ? "active" : ""}`} onClick={() => setActiveTab("help")}>
-            <HelpCircle size={18} /> <span className="nav-text">Help / About</span>
-          </button>
-          <button className={`nav-item ${activeTab === 'diagnostics' ? 'active' : ''}`} onClick={() => setActiveTab('diagnostics')}>
-            <Stethoscope size={18} /> <span className="nav-text">Diagnostics</span>
-          </button>
-          <button className={`nav-item ${activeTab === 'system' ? 'active' : ''}`} onClick={() => setActiveTab('system')}>
-            <Info size={18} /> <span className="nav-text">System Info</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="status-badge">
-            <span className="status-dot"></span>
-            LIVE
-          </div>
-        </div>
-      </aside>
+      
 
       <main className="main-content">
         <header className="top-bar" data-tauri-drag-region>
-          <h2 className="page-title" data-tauri-drag-region>
+          
+          {activeTab !== 'home' && (
+            <button className="cc-btn secondary" style={{ marginRight: '1rem' }} onClick={() => setActiveTab('home')}>
+              ← Back to Home
+            </button>
+          )}
+          <h2 className="page-title"
+ data-tauri-drag-region>
             {activeTab === 'dashboard' ? 'Overview' : activeTab === 'diagnostics' ? 'Diagnostics Engine' : 'System Identity'}
           </h2>
           
@@ -3121,6 +3079,7 @@ function App() {
         </header>
 
         <div className="tab-content">
+          {activeTab === 'home' && <HomeGrid setActiveTab={setActiveTab} />}
           {activeTab === 'dashboard' && <DashboardGrid vitals={vitals} history={history} />}
           {activeTab === 'system' && <SystemInfoView vitals={vitals} />}
         {activeTab === 'hardware' && <HardwareView vitals={vitals} history={history} />}
