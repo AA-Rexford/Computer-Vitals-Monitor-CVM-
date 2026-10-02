@@ -49,6 +49,7 @@ interface SystemVitals {
   networks: NetworkInfo[];
   sensors: SensorInfo[];
   sys_info: SystemInfoData;
+  battery: { present: boolean; percent: number; charging: boolean; power_source: string; status: string; };
 }
 
 
@@ -60,8 +61,6 @@ interface SystemVitals {
 
 
 function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals | null, history: SystemVitals[], setActiveTab: (tab: string) => void }) {
-  const [isMonitoring, setIsMonitoring] = useState(true);
-  const [activeGraph, setActiveGraph] = useState('CPU');
   
   if (!vitals) {
     return <div style={{ color: '#00e5ff', padding: '2rem' }}>INITIALIZING MONITORING ENGINE... FETCHING TELEMETRY...</div>;
@@ -124,24 +123,15 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
         </div>
       </div>
 
-      {/* 2. LIVE HARDWARE METRIC GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+      {/* LIVE METRIC CARDS - bigger graphs, no wasted space */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', flexGrow: 1 }}>
         
         {/* CPU */}
         <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #3b82f6', background: 'rgba(59, 130, 246, 0.05)' }} onClick={() => setActiveTab('hardware')}>
           <div className="cc-card-header"><span className="cc-title" style={{color: '#3b82f6'}}><Cpu size={14}/> CPU</span><span className="cc-value">{vitals.cpu_usage.toFixed(1)}%</span></div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Temp: {cpuTemp.toFixed(1)}°C | Load: Normal</div>
-          <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.cpu_usage }))}><Area type="basis" dataKey="val" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* GPU */}
-        <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #8b5cf6', background: 'rgba(139, 92, 246, 0.05)' }} onClick={() => setActiveTab('hardware')}>
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#8b5cf6'}}><Monitor size={14}/> GPU</span><span className="cc-value">{vitals.sys_info.gpu_name ? 'ACTIVE' : 'N/A'}</span></div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{vitals.sys_info.gpu_name ? vitals.sys_info.gpu_name.substring(0, 35) : 'No dedicated GPU detected'}</div>
-          <div className="cc-graph-mini" style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '0.75rem', color: '#8b5cf6', fontFamily: 'monospace' }}>{vitals.sys_info.vram !== 'Unavailable' ? `VRAM: ${vitals.sys_info.vram}` : 'GPU TELEMETRY N/A'}</span>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Temp: {cpuTemp.toFixed(1)}°C | {vitals.sys_info.cpu_brand.substring(0, 30)}</div>
+          <div className="cc-graph-mini" style={{ height: '120px', marginTop: '0.5rem' }}>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.cpu_usage }))}><defs><linearGradient id="cpuG" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs><YAxis hide /><Area type="basis" dataKey="val" stroke="#3b82f6" fill="url(#cpuG)" strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
 
@@ -149,136 +139,62 @@ function DashboardGrid({ vitals, history, setActiveTab }: { vitals: SystemVitals
         <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #f59e0b', background: 'rgba(245, 158, 11, 0.05)' }} onClick={() => setActiveTab('hardware')}>
           <div className="cc-card-header"><span className="cc-title" style={{color: '#f59e0b'}}><MemoryStick size={14}/> MEMORY</span><span className="cc-value">{ramPercent.toFixed(1)}%</span></div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Used: {formatBytes(ramUsed)} / {formatBytes(ramTotal)}</div>
-          <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.ram_used }))}><Area type="basis" dataKey="val" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* STORAGE I/O */}
-        <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #10b981', background: 'rgba(16, 185, 129, 0.05)' }} onClick={() => setActiveTab('hardware')}>
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#10b981'}}><HardDrive size={14}/> STORAGE I/O</span><span className="cc-value">LIVE</span></div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>R: {formatBytes(totalRead)}/s | W: {formatBytes(totalWrite)}/s</div>
-          <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.disk_read + h.disk_write }))}><Area type="basis" dataKey="val" stroke="#10b981" fill="#10b981" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+          <div className="cc-graph-mini" style={{ height: '120px', marginTop: '0.5rem' }}>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.ram_total > 0 ? (h.ram_used / h.ram_total) * 100 : 0 }))}><defs><linearGradient id="ramG" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/><stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/></linearGradient></defs><YAxis hide /><Area type="basis" dataKey="val" stroke="#f59e0b" fill="url(#ramG)" strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
 
         {/* NETWORK */}
         <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #00e5ff', background: 'rgba(0, 229, 255, 0.05)' }} onClick={() => setActiveTab('network')}>
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#00e5ff'}}><Network size={14}/> NETWORK</span><span className="cc-value">LIVE</span></div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Up: {formatBytes(netTx)}/s | Dn: {formatBytes(netRx)}/s</div>
-          <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.networks.reduce((a, n) => a + n.rx_bytes, 0) }))}><Area type="basis" dataKey="val" stroke="#00e5ff" fill="#00e5ff" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+          <div className="cc-card-header"><span className="cc-title" style={{color: '#00e5ff'}}><Wifi size={14}/> NETWORK</span><span className="cc-value">LIVE</span></div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>↑ {formatBytes(netTx)}/s | ↓ {formatBytes(netRx)}/s</div>
+          <div className="cc-graph-mini" style={{ height: '120px', marginTop: '0.5rem' }}>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.networks.reduce((a, n) => a + n.rx_bytes + n.tx_bytes, 0) }))}><defs><linearGradient id="netG" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00e5ff" stopOpacity={0.4}/><stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/></linearGradient></defs><YAxis hide /><Area type="basis" dataKey="val" stroke="#00e5ff" fill="url(#netG)" strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* STORAGE I/O */}
+        <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #10b981', background: 'rgba(16, 185, 129, 0.05)' }} onClick={() => setActiveTab('hardware')}>
+          <div className="cc-card-header"><span className="cc-title" style={{color: '#10b981'}}><HardDrive size={14}/> STORAGE</span><span className="cc-value">LIVE</span></div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>R: {formatBytes(totalRead)}/s | W: {formatBytes(totalWrite)}/s</div>
+          <div className="cc-graph-mini" style={{ height: '120px', marginTop: '0.5rem' }}>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.disk_read + h.disk_write }))}><defs><linearGradient id="diskG" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient></defs><YAxis hide /><Area type="basis" dataKey="val" stroke="#10b981" fill="url(#diskG)" strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
 
         {/* SENSORS */}
         <div className="cc-card" style={{ cursor: 'pointer', border: '1px solid #ef4444', background: 'rgba(239, 68, 68, 0.05)' }} onClick={() => setActiveTab('hardware')}>
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#ef4444'}}><Thermometer size={14}/> SENSORS</span><span className="cc-value">{vitals.sensors.length} ACTIVE</span></div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Highest: {Math.max(0, ...vitals.sensors.map(s => s.temperature)).toFixed(1)}°C</div>
-          <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.sensors[0]?.temperature || 40 }))}><Area type="basis" dataKey="val" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
+          <div className="cc-card-header"><span className="cc-title" style={{color: '#ef4444'}}><Thermometer size={14}/> THERMALS</span><span className="cc-value">{vitals.sensors.length} Probes</span></div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Peak: {Math.max(0, ...vitals.sensors.map(s => s.temperature)).toFixed(1)}°C</div>
+          <div className="cc-graph-mini" style={{ height: '120px', marginTop: '0.5rem' }}>
+            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: h.sensors[0]?.temperature || 40 }))}><defs><linearGradient id="sensG" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/></linearGradient></defs><YAxis hide /><Area type="basis" dataKey="val" stroke="#ef4444" fill="url(#sensG)" strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
           </div>
         </div>
 
-        {/* BATTERY / POWER */}
-        {(() => {
-          const batSensor = vitals.sensors.find(s => s.label.toLowerCase().includes('bat'));
-          const hasBattery = !!batSensor;
-          const batTemp = batSensor?.temperature || 0;
-          return (
-            <div className="cc-card" style={{ border: '1px solid #a855f7', background: 'rgba(168, 85, 247, 0.05)' }}>
-              <div className="cc-card-header"><span className="cc-title" style={{color: '#a855f7'}}>⚡ POWER</span><span className="cc-value">{hasBattery ? `${batTemp > 0 ? batTemp.toFixed(0) + '°C' : 'ON BAT'}` : 'AC'}</span></div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{hasBattery ? 'Battery detected' : 'AC Power (No battery)'}</div>
-              <div className="cc-graph-mini" style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '0.85rem', color: hasBattery ? '#a855f7' : '#64748b', fontFamily: 'monospace' }}>{hasBattery ? 'BATTERY ACTIVE' : 'MAINS POWER'}</span>
+        {/* BATTERY / POWER - REAL DATA */}
+        <div className="cc-card" style={{ border: '1px solid #a855f7', background: 'rgba(168, 85, 247, 0.05)' }}>
+          <div className="cc-card-header"><span className="cc-title" style={{color: '#a855f7'}}>⚡ POWER</span><span className="cc-value">{vitals.battery.present ? `${vitals.battery.percent.toFixed(0)}%` : 'AC'}</span></div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{vitals.battery.present ? `${vitals.battery.status} · ${vitals.battery.power_source}` : 'No battery · AC Power'}</div>
+          {vitals.battery.present ? (
+            <div style={{ marginTop: '0.75rem' }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '6px', height: '28px', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ height: '100%', width: `${vitals.battery.percent}%`, background: vitals.battery.charging ? 'linear-gradient(90deg, #10b981, #34d399)' : vitals.battery.percent < 20 ? 'linear-gradient(90deg, #ef4444, #f87171)' : 'linear-gradient(90deg, #a855f7, #c084fc)', borderRadius: '6px', transition: 'width 0.5s ease' }} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', color: '#fff' }}>
+                  {vitals.battery.charging ? `⚡ Charging ${vitals.battery.percent.toFixed(0)}%` : `${vitals.battery.percent.toFixed(0)}%`}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <span>Source: {vitals.battery.power_source}</span>
+                <span>Status: {vitals.battery.status}</span>
               </div>
             </div>
-          );
-        })()}
-
-        {/* SYSTEM LOAD */}
-        <div className="cc-card" style={{ border: '1px solid #f472b6', background: 'rgba(244, 114, 182, 0.05)' }}>
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#f472b6'}}><Server size={14}/> SYS LOAD</span><span className="cc-value">{(vitals.cpu_usage / 100 * 4).toFixed(2)}</span></div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Uptime: {Math.floor(vitals.uptime / 3600)}h {Math.floor((vitals.uptime % 3600)/60)}m</div>
-          <div className="cc-graph-mini" style={{ height: '60px' }}>
-            <ResponsiveContainer width="100%" height="100%"><AreaChart data={history.map(h => ({ val: (h.cpu_usage / 100 * 4) }))}><Area type="basis" dataKey="val" stroke="#f472b6" fill="#f472b6" fillOpacity={0.2} strokeWidth={2} isAnimationActive={false} /></AreaChart></ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-        
-        {/* 3. LIVE GRAPH AREA */}
-        <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              {['CPU', 'RAM', 'NET', 'DISK'].map(g => (
-                <button key={g} onClick={() => setActiveGraph(g)} style={{ background: activeGraph === g ? 'rgba(0, 229, 255, 0.2)' : 'transparent', border: activeGraph === g ? '1px solid #00e5ff' : '1px solid rgba(255,255,255,0.1)', color: activeGraph === g ? '#00e5ff' : '#fff', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>{g}</button>
-              ))}
+          ) : (
+            <div style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: '#64748b', fontFamily: 'monospace' }}>MAINS POWER</span>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: '#10b981', fontFamily: 'monospace' }}>● LIVE ({history.length}s window)</span>
-            </div>
-          </div>
-          
-          <div style={{ flexGrow: 1, minHeight: '200px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={history.map(h => ({ 
-                val: activeGraph === 'CPU' ? h.cpu_usage : 
-                     activeGraph === 'RAM' ? h.ram_used : 
-                     activeGraph === 'NET' ? h.networks.reduce((a,n) => a+n.rx_bytes, 0) : 
-                     (h.disk_read + h.disk_write) 
-              }))}>
-                <defs>
-                  <linearGradient id="colorMain" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00e5ff" stopOpacity={0.5}/>
-                    <stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <YAxis hide />
-                <Area type="basis" dataKey="val" stroke="#00e5ff" fill="url(#colorMain)" strokeWidth={2} isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
-          {/* 4. ACTIVE STATUS AREA */}
-          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '1.5rem', flexGrow: 1 }}>
-            <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '1rem' }}>Active Conditions</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {cpuTemp > 85 ? (
-                 <div style={{ padding: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid #ef4444', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer' }} onClick={() => setActiveTab('reports')}>
-                   <strong style={{color: '#ef4444'}}>CRITICAL: Thermal Throttling</strong><br/>
-                   CPU temperature exceeded 85°C. Performance limited.
-                 </div>
-              ) : null}
-              {ramPercent > 90 ? (
-                 <div style={{ padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderLeft: '4px solid #f59e0b', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer' }} onClick={() => setActiveTab('reports')}>
-                   <strong style={{color: '#f59e0b'}}>WARNING: Abnormal Memory Pressure</strong><br/>
-                   RAM usage exceeds 90%. System may page to disk.
-                 </div>
-              ) : null}
-              {cpuTemp <= 85 && ramPercent <= 90 && (
-                <div style={{ padding: '1rem', textAlign: 'center', color: '#10b981', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '8px', border: '1px dashed #10b981' }}>
-                   <strong>ALL SYSTEMS NOMINAL</strong><br/>
-                   <span style={{ fontSize: '0.8rem' }}>No active hardware warnings.</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 5. QUICK CONTROLS */}
-          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '1.5rem' }}>
-            <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '1rem' }}>Quick Actions</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <button className="cc-btn" style={{ background: 'rgba(0, 229, 255, 0.15)', border: '1px solid rgba(0, 229, 255, 0.4)', color: '#00e5ff' }} onClick={() => setActiveTab('reports')}>⚡ RUN DIAGNOSTIC</button>
-              <button className="cc-btn" style={{ background: isMonitoring ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.15)', border: isMonitoring ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)', color: isMonitoring ? '#f59e0b' : '#10b981' }} onClick={() => setIsMonitoring(!isMonitoring)}>{isMonitoring ? '⏸ PAUSE MONITORING' : '▶ RESUME MONITORING'}</button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -454,7 +370,7 @@ function SoftwareView({ vitals }: { vitals: SystemVitals | null }) {
         
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {tabs.map(t => (
-            <button key={t} onClick={() => setActiveTab(t)} style={{ background: activeTab === t ? 'rgba(0, 229, 255, 0.2)' : 'rgba(255,255,255,0.05)', border: activeTab === t ? '1px solid #00e5ff' : '1px solid transparent', color: activeTab === t ? '#00e5ff' : '#fff', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>{t}</button>
+            <button key={t} onClick={() => setActiveTab(t)} style={{ background: activeTab === t ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255,255,255,0.03)', border: activeTab === t ? '1px solid #00e5ff' : '1px solid rgba(255,255,255,0.1)', color: activeTab === t ? '#00e5ff' : 'rgba(255,255,255,0.7)', padding: '0.6rem 1.2rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' as const, boxShadow: activeTab === t ? '0 0 12px rgba(0,229,255,0.2)' : 'none', transition: 'all 0.2s ease' }}>{t}</button>
           ))}
         </div>
       </div>
@@ -1229,7 +1145,7 @@ function NetworkView({ vitals, history }: { vitals: SystemVitals | null, history
         
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {tabs.map(t => (
-            <button key={t} onClick={() => setActiveTab(t)} style={{ background: activeTab === t ? 'rgba(0, 229, 255, 0.2)' : 'rgba(255,255,255,0.05)', border: activeTab === t ? '1px solid #00e5ff' : '1px solid transparent', color: activeTab === t ? '#00e5ff' : '#fff', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>{t}</button>
+            <button key={t} onClick={() => setActiveTab(t)} style={{ background: activeTab === t ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255,255,255,0.03)', border: activeTab === t ? '1px solid #00e5ff' : '1px solid rgba(255,255,255,0.1)', color: activeTab === t ? '#00e5ff' : 'rgba(255,255,255,0.7)', padding: '0.6rem 1.2rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' as const, boxShadow: activeTab === t ? '0 0 12px rgba(0,229,255,0.2)' : 'none', transition: 'all 0.2s ease' }}>{t}</button>
           ))}
         </div>
       </div>
@@ -1400,7 +1316,7 @@ function NetworkView({ vitals, history }: { vitals: SystemVitals | null, history
 function DevicesView() {
   const [activeTab, setActiveTab] = useState('Overview');
   
-  const tabs = ['Overview', 'Input', 'Audio', 'Imaging', 'Biometrics', 'Displays', 'USB', 'Bluetooth', 'Storage', 'Printers'];
+  const tabs = ['Overview', 'Input', 'Audio', 'Imaging', 'Biometrics', 'Displays', 'USB', 'Bluetooth', 'Storage', 'Peripherals'];
 
   const panelStyle = { background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column' as const };
   const headerStyle = { color: '#00e5ff', fontSize: '1rem', letterSpacing: '1px', marginBottom: '1rem', textTransform: 'uppercase' as const, borderBottom: '1px solid rgba(0,229,255,0.2)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' };
@@ -1436,7 +1352,7 @@ function DevicesView() {
         
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {tabs.map(t => (
-            <button key={t} onClick={() => setActiveTab(t)} style={{ background: activeTab === t ? 'rgba(0, 229, 255, 0.2)' : 'rgba(255,255,255,0.05)', border: activeTab === t ? '1px solid #00e5ff' : '1px solid transparent', color: activeTab === t ? '#00e5ff' : '#fff', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>{t}</button>
+            <button key={t} onClick={() => setActiveTab(t)} style={{ background: activeTab === t ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255,255,255,0.03)', border: activeTab === t ? '1px solid #00e5ff' : '1px solid rgba(255,255,255,0.1)', color: activeTab === t ? '#00e5ff' : 'rgba(255,255,255,0.7)', padding: '0.6rem 1.2rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' as const, boxShadow: activeTab === t ? '0 0 12px rgba(0,229,255,0.2)' : 'none', transition: 'all 0.2s ease' }}>{t}</button>
           ))}
         </div>
       </div>
@@ -1626,23 +1542,30 @@ function DevicesView() {
           </div>
         )}
 
-        {/* PRINTERS TAB */}
-        {activeTab === 'Printers' && (
+        {/* PERIPHERALS TAB */}
+        {activeTab === 'Peripherals' && (
           <div style={panelStyle}>
-            <div style={headerStyle}><span>Printers & Scanners</span></div>
+            <div style={headerStyle}><span>Printers, Scanners & Other Peripherals</span></div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ border: '1px solid rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
-                 <div style={{ fontSize: '1.1rem', color: '#00e5ff', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between' }}><span>HP LaserJet Pro M404</span><StatusBadge state="Ready" /></div>
-                 <div style={gridStyle}>
-                   <div style={itemStyle}><span style={labelStyle}>Connection</span><span style={valStyle}>Network (192.168.1.150)</span></div>
-                   <div style={itemStyle}><span style={labelStyle}>Queue State</span><span style={valStyle}>Idle (0 Jobs)</span></div>
-                   <div style={itemStyle}><span style={labelStyle}>Toner / Ink</span><span style={valStyle}>65% Remaining</span></div>
-                 </div>
-                 <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                   <ActionButton label="Print Test Page" />
-                   <ActionButton label="Clear Queue" danger />
-                 </div>
-              </div>
+              {[
+                { name: 'HP LaserJet Pro M404', type: 'Printer', connection: 'Network (192.168.1.150)', status: 'Ready', detail: 'Toner: 65%' },
+                { name: 'Canon CanoScan LiDE 300', type: 'Scanner', connection: 'USB 2.0', status: 'Ready', detail: 'Flatbed Scanner' },
+                { name: 'Lenovo USB-C Dock Gen 2', type: 'Docking Station', connection: 'USB-C / Thunderbolt', status: 'Connected', detail: '3x USB-A, HDMI, DP, Ethernet' },
+                { name: 'Realtek PCIE Card Reader', type: 'Card Reader', connection: 'PCIe Internal', status: 'Ready', detail: 'SD/SDHC/SDXC' },
+                { name: 'APC Back-UPS 600', type: 'UPS', connection: 'USB HID', status: 'Connected', detail: 'Battery: 100%' },
+                { name: 'USB Hub 4-Port', type: 'USB Hub', connection: 'USB 3.0', status: 'Connected', detail: '3 devices attached' },
+              ].map((d, i) => (
+                <div key={i} style={{ border: '1px solid rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div><span style={{ fontSize: '1rem', color: '#00e5ff', fontWeight: 'bold' }}>{d.name}</span><span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>{d.type}</span></div>
+                    <StatusBadge state={d.status as any} />
+                  </div>
+                  <div style={gridStyle}>
+                    <div style={itemStyle}><span style={labelStyle}>Connection</span><span style={valStyle}>{d.connection}</span></div>
+                    <div style={itemStyle}><span style={labelStyle}>Details</span><span style={valStyle}>{d.detail}</span></div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -2213,7 +2136,7 @@ function ReportsView({ history, vitals }: { history: SystemVitals[], vitals: Sys
         
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {tabs.map(t => (
-            <button key={t} onClick={() => setActiveTab(t)} style={{ background: activeTab === t ? 'rgba(0, 229, 255, 0.2)' : 'rgba(255,255,255,0.05)', border: activeTab === t ? '1px solid #00e5ff' : '1px solid transparent', color: activeTab === t ? '#00e5ff' : '#fff', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>{t}</button>
+            <button key={t} onClick={() => setActiveTab(t)} style={{ background: activeTab === t ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255,255,255,0.03)', border: activeTab === t ? '1px solid #00e5ff' : '1px solid rgba(255,255,255,0.1)', color: activeTab === t ? '#00e5ff' : 'rgba(255,255,255,0.7)', padding: '0.6rem 1.2rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' as const, boxShadow: activeTab === t ? '0 0 12px rgba(0,229,255,0.2)' : 'none', transition: 'all 0.2s ease' }}>{t}</button>
           ))}
         </div>
       </div>

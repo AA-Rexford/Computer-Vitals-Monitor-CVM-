@@ -72,6 +72,15 @@ struct SystemInfoData {
 }
 
 #[derive(Serialize, Clone)]
+struct BatteryInfo {
+    present: bool,
+    percent: f32,
+    charging: bool,
+    power_source: String,
+    status: String,
+}
+
+#[derive(Serialize, Clone)]
 struct SystemVitals {
     cpu_usage: f32,
     disk_read: u64,
@@ -84,6 +93,7 @@ struct SystemVitals {
     networks: Vec<NetworkInfo>,
     sensors: Vec<SensorInfo>,
     sys_info: SystemInfoData,
+    battery: BatteryInfo,
 }
 
 struct AppState {
@@ -226,6 +236,41 @@ fn get_vram_info() -> String {
     }
 }
 
+
+
+
+fn get_battery_info() -> BatteryInfo {
+    #[cfg(target_os = "linux")]
+    {
+        let power_supply = std::path::Path::new("/sys/class/power_supply");
+        if power_supply.exists() {
+            for entry in std::fs::read_dir(power_supply).unwrap_or_else(|_| std::fs::read_dir("/dev/null").unwrap()) {
+                if let Ok(entry) = entry {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    if name.starts_with("BAT") {
+                        let base = entry.path();
+                        let status = std::fs::read_to_string(base.join("status")).unwrap_or_default().trim().to_string();
+                        let capacity = std::fs::read_to_string(base.join("capacity")).unwrap_or_default().trim().parse::<f32>().unwrap_or(0.0);
+                        let charging = status == "Charging" || status == "Full";
+                        let power_source = if charging { "AC Power".to_string() } else { "Battery".to_string() };
+                        return BatteryInfo {
+                            present: true,
+                            percent: capacity,
+                            charging,
+                            power_source,
+                            status,
+                        };
+                    }
+                }
+            }
+        }
+        BatteryInfo { present: false, percent: 0.0, charging: false, power_source: "AC Power".to_string(), status: "N/A".to_string() }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        BatteryInfo { present: false, percent: 0.0, charging: false, power_source: "Unknown".to_string(), status: "N/A".to_string() }
+    }
+}
 
 
 
@@ -533,6 +578,7 @@ fn get_system_vitals(state: State<'_, AppState>) -> SystemVitals {
         networks: net_list,
         sensors: sensor_list,
         sys_info,
+        battery: get_battery_info(),
     }
 }
 
