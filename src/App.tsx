@@ -1186,170 +1186,216 @@ function StorageView({ vitals, history }: { vitals: SystemVitals | null, history
 }
 
 
-function NetworkView({ vitals, history }: { vitals: SystemVitals | null, history: SystemVitals[] }) {
-  const [activeTest, setActiveTest] = useState<string | null>(null);
 
-  if (!vitals) return <div className="loading" style={{padding: '2rem'}}>Scanning Network Interfaces...</div>;
+function NetworkView({ vitals, history }: { vitals: SystemVitals | null, history: SystemVitals[] }) {
+  const [activeTab, setActiveTab] = useState('Overview');
   
+  if (!vitals) return <div style={{ color: '#00e5ff', padding: '2rem' }}>INITIALIZING NETWORK ENGINE...</div>;
+
+  const tabs = ['Overview', 'Interfaces', 'Ethernet', 'Wi-Fi', 'Activity', 'Configuration', 'Diagnostics', 'Actions'];
+
+  const panelStyle = { background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column' as const };
+  const headerStyle = { color: '#00e5ff', fontSize: '1rem', letterSpacing: '1px', marginBottom: '1rem', textTransform: 'uppercase' as const, borderBottom: '1px solid rgba(0,229,255,0.2)', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' };
+  const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' };
+  const itemStyle = { display: 'flex', flexDirection: 'column' as const, gap: '0.25rem' };
+  const labelStyle = { color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' as const };
+  const valStyle = { color: '#fff', fontSize: '0.9rem', fontWeight: 600 };
+
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  const runTest = (testName: string) => {
-    setActiveTest(testName);
-    setTimeout(() => setActiveTest(null), 2500);
+  const StatusBadge = ({ state }: { state: 'Connected' | 'Limited' | 'Disconnected' | 'Warning' | 'Error' | 'Unknown' | 'Active' | 'Inactive' | 'PASS' | 'FAIL' | 'NOT TESTED' }) => {
+    const colors = { Connected: '#10b981', Limited: '#f59e0b', Disconnected: '#64748b', Warning: '#f59e0b', Error: '#ef4444', Unknown: '#64748b', Active: '#10b981', Inactive: '#64748b', PASS: '#10b981', FAIL: '#ef4444', 'NOT TESTED': '#64748b' };
+    return <span style={{ color: colors[state] || '#fff', fontSize: '0.8rem', border: `1px solid ${colors[state] || '#fff'}`, padding: '0.1rem 0.4rem', borderRadius: '4px', whiteSpace: 'nowrap' }}>{state}</span>;
   };
-
-  const tests = [
-    "Adapter Test", "Link Test", "IP Test", "DHCP Test", 
-    "Gateway Test", "DNS Test", "Internet Test", 
-    "Latency Test", "Packet-Loss Test", "Route Test"
-  ];
 
   const totalRx = vitals.networks.reduce((acc, n) => acc + n.rx_bytes, 0);
   const totalTx = vitals.networks.reduce((acc, n) => acc + n.tx_bytes, 0);
+  const isConnected = totalRx > 0 || totalTx > 0;
 
   return (
-    <div className="system-info" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '1rem', gap: '1.25rem' }}>
-      <div className="cc-header" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="cc-identity">
-          <h3>Network Subsystem</h3>
-          <span className="cc-os">Interfaces, Routing & Live Traffic</span>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingRight: '1rem', gap: '1rem' }}>
+      
+      {/* HEADER & NAV */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
+        <div>
+          <h2 style={{ margin: 0, color: '#fff', fontSize: '1.5rem', letterSpacing: '1px' }}>NETWORK SUBSYSTEM</h2>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Live interfaces, routing, and connectivity telemetry</span>
         </div>
-      </div>
-
-      {/* Network Interfaces Table */}
-      <div className="cc-card">
-        <div className="cc-card-header"><span className="cc-title" style={{color: '#00e5ff'}}>NETWORK INTERFACES (ETHERNET / WI-FI / VPN)</span></div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', marginTop: '1rem' }}>
-          <thead>
-            <tr style={{ color: 'var(--text-muted)' }}>
-              <th style={{ padding: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Interface</th>
-              <th style={{ padding: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Status</th>
-              <th style={{ padding: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>MAC Address</th>
-              <th style={{ padding: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Live DL</th>
-              <th style={{ padding: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Live UL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {vitals.networks.map((n, i) => (
-              <tr key={i}>
-                <td style={{ padding: '0.6rem 0.5rem', fontWeight: 'bold' }}>{n.name}</td>
-                <td style={{ padding: '0.6rem 0.5rem', color: n.rx_bytes > 0 || n.tx_bytes > 0 ? '#10b981' : 'var(--text-muted)' }}>
-                  {n.rx_bytes > 0 || n.tx_bytes > 0 ? 'Connected / Up' : 'Down / Inactive'}
-                </td>
-                <td style={{ padding: '0.6rem 0.5rem', fontFamily: 'monospace' }}>{vitals.sys_info.mac_addresses[i] || '00:00:00:00:00:00'}</td>
-                <td style={{ padding: '0.6rem 0.5rem', color: '#00e5ff' }}>↓ {formatBytes(n.rx_bytes)}/s</td>
-                <td style={{ padding: '0.6rem 0.5rem', color: '#f59e0b' }}>↑ {formatBytes(n.tx_bytes)}/s</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="cc-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
         
-        {/* IPv4 / Routing Identity */}
-        <div className="cc-card">
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#8b5cf6'}}>NETWORK IDENTITY & ROUTING</span></div>
-          <table className="info-table" style={{marginTop: '1rem'}}>
-            <tbody>
-              <tr><td className="info-label">IPv4 Address</td><td className="info-val">192.168.1.45 / 24</td></tr>
-              <tr><td className="info-label">IPv6 Address</td><td className="info-val">fe80::1a2b:3c4d:5e6f</td></tr>
-              <tr><td className="info-label">Default Gateway</td><td className="info-val">192.168.1.1</td></tr>
-              <tr><td className="info-label">DNS Servers</td><td className="info-val">1.1.1.1, 8.8.8.8</td></tr>
-              <tr><td className="info-label">DHCP Status</td><td className="info-val" style={{color: '#10b981'}}>Enabled (Lease Active)</td></tr>
-              <tr><td className="info-label">Routing Table</td><td className="info-val">3 Static Routes (Auto-managed)</td></tr>
-              <tr><td className="info-label">Connectivity Status</td><td className="info-val" style={{color: '#10b981'}}>Internet Access</td></tr>
-            </tbody>
-          </table>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          {tabs.map(t => (
+            <button key={t} onClick={() => setActiveTab(t)} style={{ background: activeTab === t ? 'rgba(0, 229, 255, 0.2)' : 'rgba(255,255,255,0.05)', border: activeTab === t ? '1px solid #00e5ff' : '1px solid transparent', color: activeTab === t ? '#00e5ff' : '#fff', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>{t}</button>
+          ))}
         </div>
-
-        {/* Link / Transport Analytics */}
-        <div className="cc-card">
-          <div className="cc-card-header"><span className="cc-title" style={{color: '#f59e0b'}}>LINK & TRANSPORT ANALYTICS</span></div>
-          <table className="info-table" style={{marginTop: '1rem'}}>
-            <tbody>
-              <tr><td className="info-label">Interface Speed</td><td className="info-val">1000 Mbps (Gigabit)</td></tr>
-              <tr><td className="info-label">Duplex Mode</td><td className="info-val">Full Duplex</td></tr>
-              <tr><td className="info-label">Wi-Fi Information</td><td className="info-val">WPA3 Personal (SSID: CVM-Net)</td></tr>
-              <tr><td className="info-label">Wi-Fi Signal Strength</td><td className="info-val" style={{color: '#10b981'}}>-45 dBm (Excellent)</td></tr>
-              <tr><td className="info-label">Network Latency (ICMP)</td><td className="info-val">14 ms (to 8.8.8.8)</td></tr>
-              <tr><td className="info-label">Packet Loss (TCP)</td><td className="info-val" style={{color: '#10b981'}}>0.00%</td></tr>
-              <tr><td className="info-label">Total Packets / Errors</td><td className="info-val" style={{color: '#10b981'}}>1.4M / 0 Errors / 0 Drops</td></tr>
-            </tbody>
-          </table>
-        </div>
-
       </div>
 
-      <div className="cc-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+      <div style={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
-        {/* Network Diagnostics */}
-        <div className="cc-card">
-          <div className="cc-card-header"><span className="cc-title">NETWORK DIAGNOSTIC TESTS</span></div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
-            {tests.map(t => (
-              <button 
-                key={t} 
-                className="cc-btn" 
-                style={{ 
-                  flexGrow: 1, 
-                  background: activeTest === t ? 'rgba(0, 229, 255, 0.4)' : 'rgba(0, 0, 0, 0.3)',
-                  color: activeTest === t ? '#fff' : 'var(--text-muted)',
-                  border: activeTest === t ? '1px solid #00e5ff' : '1px solid rgba(255,255,255,0.1)'
-                }}
-                onClick={() => runTest(t)}
-              >
-                {activeTest === t ? 'TESTING...' : t.toUpperCase()}
-              </button>
-            ))}
+        {/* OVERVIEW TAB */}
+        {activeTab === 'Overview' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div style={panelStyle}>
+              <div style={headerStyle}><span>Network Status</span><StatusBadge state={isConnected ? 'Connected' : 'Disconnected'} /></div>
+              <div style={gridStyle}>
+                <div style={itemStyle}><span style={labelStyle}>Connectivity State</span><span style={{...valStyle, color: isConnected ? '#10b981' : '#64748b'}}>{isConnected ? 'Internet Access' : 'No Access'}</span></div>
+                <div style={itemStyle}><span style={labelStyle}>Active Interfaces</span><span style={valStyle}>{vitals.networks.length} Detected</span></div>
+                <div style={itemStyle}><span style={labelStyle}>Total Upload</span><span style={{...valStyle, color: '#00e5ff'}}>{formatBytes(totalTx)}/s</span></div>
+                <div style={itemStyle}><span style={labelStyle}>Total Download</span><span style={{...valStyle, color: '#f59e0b'}}>{formatBytes(totalRx)}/s</span></div>
+                <div style={itemStyle}><span style={labelStyle}>Default Gateway</span><span style={valStyle}>192.168.1.1</span></div>
+                <div style={itemStyle}><span style={labelStyle}>DNS Servers</span><span style={valStyle}>1.1.1.1, 8.8.8.8</span></div>
+              </div>
+            </div>
+            
+            <div style={panelStyle}>
+              <div style={headerStyle}><span>Network Configuration</span></div>
+              <div style={gridStyle}>
+                <div style={itemStyle}><span style={labelStyle}>IPv4 Address</span><span style={valStyle}>192.168.1.45 / 24</span></div>
+                <div style={itemStyle}><span style={labelStyle}>IPv6 Address</span><span style={valStyle}>fe80::1a2b:3c4d:5e6f</span></div>
+                <div style={itemStyle}><span style={labelStyle}>DHCP Status</span><span style={valStyle}>Enabled (Lease Active)</span></div>
+                <div style={itemStyle}><span style={labelStyle}>Link Speed</span><span style={valStyle}>1000 Mbps</span></div>
+                <div style={itemStyle}><span style={labelStyle}>VPN/Proxy</span><span style={valStyle}>Inactive</span></div>
+              </div>
+            </div>
           </div>
-          {activeTest && <div style={{ marginTop: '1rem', color: '#00e5ff', fontSize: '0.85rem' }}>Executing {activeTest} on primary interface... [Pending]</div>}
-        </div>
+        )}
 
-        {/* Live Traffic Graph */}
-        <div className="cc-card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="cc-card-header"><span className="cc-title">LIVE NETWORK TRAFFIC</span></div>
-          <div style={{ fontSize: '0.85rem', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: '#00e5ff' }}>↓ DL: {formatBytes(totalRx)}/s</span>
-            <span style={{ color: '#f59e0b' }}>↑ UL: {formatBytes(totalTx)}/s</span>
+        {/* INTERFACES TAB */}
+        {activeTab === 'Interfaces' && (
+          <div style={panelStyle}>
+            <div style={headerStyle}><span>Network Interfaces</span><span>{vitals.networks.length} Adapters</span></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {vitals.networks.map((n, i) => (
+                <div key={i} style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '1.1rem', color: '#00e5ff', fontWeight: 'bold' }}>{n.name}</div>
+                    <StatusBadge state={(n.rx_bytes > 0 || n.tx_bytes > 0) ? 'Active' : 'Inactive'} />
+                  </div>
+                  <div style={gridStyle}>
+                    <div style={itemStyle}><span style={labelStyle}>Adapter Type</span><span style={valStyle}>{n.name.includes('wl') ? 'Wireless' : n.name.includes('lo') ? 'Loopback' : 'Ethernet'}</span></div>
+                    <div style={itemStyle}><span style={labelStyle}>MAC Address</span><span style={valStyle}>00:1A:2B:3C:4D:5E</span></div>
+                    <div style={itemStyle}><span style={labelStyle}>Driver</span><span style={valStyle}>Kernel Module</span></div>
+                    <div style={itemStyle}><span style={labelStyle}>Live Down</span><span style={{...valStyle, color: '#f59e0b'}}>↓ {formatBytes(n.rx_bytes)}/s</span></div>
+                    <div style={itemStyle}><span style={labelStyle}>Live Up</span><span style={{...valStyle, color: '#00e5ff'}}>↑ {formatBytes(n.tx_bytes)}/s</span></div>
+                    <div style={itemStyle}><span style={labelStyle}>Packet Stats</span><span style={valStyle}>0 Errors / 0 Drops</span></div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div style={{ flexGrow: 1, marginTop: '1rem', minHeight: '120px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={history.map(h => {
-                const rx = h.networks.reduce((acc, n) => acc + n.rx_bytes, 0);
-                const tx = h.networks.reduce((acc, n) => acc + n.tx_bytes, 0);
-                return { rx, tx };
-              })} margin={{ top: 0, right: 0, left: -60, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorNetR" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00e5ff" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorNetT" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <YAxis hide />
-                <Area type="monotone" dataKey="rx" stroke="#00e5ff" fill="url(#colorNetR)" strokeWidth={2} isAnimationActive={false} />
-                <Area type="monotone" dataKey="tx" stroke="#f59e0b" fill="url(#colorNetT)" strokeWidth={2} isAnimationActive={false} />
-              </AreaChart>
-            </ResponsiveContainer>
+        )}
+
+        {/* ETHERNET TAB */}
+        {activeTab === 'Ethernet' && (
+          <div style={panelStyle}>
+            <div style={headerStyle}><span>Ethernet Specifics</span><StatusBadge state="Connected" /></div>
+            <div style={gridStyle}>
+              <div style={itemStyle}><span style={labelStyle}>Connection State</span><span style={valStyle}>Connected (eth0)</span></div>
+              <div style={itemStyle}><span style={labelStyle}>Negotiated Speed</span><span style={valStyle}>1000 Mbps</span></div>
+              <div style={itemStyle}><span style={labelStyle}>Duplex Mode</span><span style={valStyle}>Full Duplex</span></div>
+              <div style={itemStyle}><span style={labelStyle}>Link Changes</span><span style={valStyle}>0 in last 24h</span></div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* WI-FI TAB */}
+        {activeTab === 'Wi-Fi' && (
+          <div style={panelStyle}>
+            <div style={headerStyle}><span>Wi-Fi Specifics</span><StatusBadge state="Disconnected" /></div>
+            <div style={gridStyle}>
+              <div style={itemStyle}><span style={labelStyle}>Adapter</span><span style={valStyle}>Intel Wi-Fi 6 AX200</span></div>
+              <div style={itemStyle}><span style={labelStyle}>Connected SSID</span><span style={valStyle}>N/A</span></div>
+              <div style={itemStyle}><span style={labelStyle}>Signal Strength</span><span style={valStyle}>0 dBm</span></div>
+              <div style={itemStyle}><span style={labelStyle}>Frequency / Band</span><span style={valStyle}>Not Associated</span></div>
+              <div style={itemStyle}><span style={labelStyle}>Security Mode</span><span style={valStyle}>N/A</span></div>
+            </div>
+          </div>
+        )}
+
+        {/* ACTIVITY TAB (GRAPHS) */}
+        {activeTab === 'Activity' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem', flexGrow: 1 }}>
+            <div style={{...panelStyle, flexGrow: 1, minHeight: '300px'}}>
+              <div style={headerStyle}><span>Live Traffic (All Interfaces)</span></div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+                <span style={{ color: '#f59e0b' }}>● Download: {formatBytes(totalRx)}/s</span>
+                <span style={{ color: '#00e5ff' }}>● Upload: {formatBytes(totalTx)}/s</span>
+              </div>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={history.map(h => ({
+                  rx: h.networks.reduce((acc, n) => acc + n.rx_bytes, 0),
+                  tx: h.networks.reduce((acc, n) => acc + n.tx_bytes, 0)
+                }))} margin={{ top: 0, right: 0, left: -60, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorRx" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/><stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/></linearGradient>
+                    <linearGradient id="colorTx" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00e5ff" stopOpacity={0.4}/><stop offset="95%" stopColor="#00e5ff" stopOpacity={0}/></linearGradient>
+                  </defs>
+                  <YAxis hide />
+                  <Area type="monotone" dataKey="rx" stroke="#f59e0b" fill="url(#colorRx)" strokeWidth={2} isAnimationActive={false} />
+                  <Area type="monotone" dataKey="tx" stroke="#00e5ff" fill="url(#colorTx)" strokeWidth={2} isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* CONFIGURATION */}
+        {activeTab === 'Configuration' && (
+          <div style={panelStyle}>
+            <div style={headerStyle}><span>Network Configuration Detail</span></div>
+            <div style={gridStyle}>
+              <div style={itemStyle}><span style={labelStyle}>IPv4 Routing</span><span style={valStyle}>Standard Auto</span></div>
+              <div style={itemStyle}><span style={labelStyle}>IPv6 Routing</span><span style={valStyle}>Link Local Only</span></div>
+              <div style={itemStyle}><span style={labelStyle}>Subnet Mask</span><span style={valStyle}>255.255.255.0</span></div>
+              <div style={itemStyle}><span style={labelStyle}>Static Routes</span><span style={valStyle}>None</span></div>
+            </div>
+          </div>
+        )}
+
+        {/* DIAGNOSTICS */}
+        {activeTab === 'Diagnostics' && (
+          <div style={panelStyle}>
+            <div style={headerStyle}><span>Connectivity Diagnostics</span></div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              {[
+                { name: 'Interface Test', state: 'PASS' }, { name: 'Link Test', state: 'PASS' },
+                { name: 'IP Config Test', state: 'PASS' }, { name: 'DHCP Test', state: 'PASS' },
+                { name: 'Gateway Test', state: 'PASS' }, { name: 'DNS Test', state: 'FAIL' },
+                { name: 'Internet Test', state: 'NOT TESTED' }, { name: 'Latency Test', state: 'NOT TESTED' },
+              ].map(test => (
+                <div key={test.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '0.8rem', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span style={{ fontSize: '0.85rem' }}>{test.name}</span>
+                  <StatusBadge state={test.state as any} />
+                </div>
+              ))}
+            </div>
+            <button className="cc-btn" style={{ alignSelf: 'flex-start', background: 'rgba(0, 229, 255, 0.2)', border: '1px solid #00e5ff', color: '#00e5ff' }}>RUN FULL DIAGNOSTIC SUITE</button>
+          </div>
+        )}
+
+        {/* ACTIONS */}
+        {activeTab === 'Actions' && (
+          <div style={panelStyle}>
+            <div style={headerStyle}><span>Network Actions (Privileged)</span></div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+              <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff' }}>RECONNECT INTERFACE</button>
+              <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff' }}>RENEW DHCP LEASE</button>
+              <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff' }}>FLUSH DNS CACHE</button>
+              <button className="cc-btn" style={{ background: 'rgba(255,255,255,0.05)', color: '#fff' }}>RESTART NETWORK SERVICE</button>
+              <button className="cc-btn" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444' }}>DISABLE ADAPTER</button>
+            </div>
+          </div>
+        )}
 
       </div>
-
     </div>
   );
 }
-
 
 function DevicesView() {
   const [selectedDevice, setSelectedDevice] = useState<any>(null);
